@@ -1,8 +1,8 @@
 var utils = require('keystone-utils');
-var keystone = require('../../../');
 var session = require('../../../lib/session');
 
 function signin (req, res) {
+	var keystone = req.keystone;
 	if (!req.body.email || !req.body.password) {
 		return res.status(401).json({ error: 'email and password required' });
 	}
