@@ -5,7 +5,7 @@ import React from 'react';
 import Field from '../Field';
 import Domify from 'react-domify';
 
-import { Fields } from 'FieldTypes';
+import { Fields } from '../..';
 import { Button, GlyphButton } from '../../../admin/client/App/elemental';
 import InvalidFieldType from '../../../admin/client/App/shared/InvalidFieldType';
 
