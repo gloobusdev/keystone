@@ -7,7 +7,7 @@ import React from 'react';
 import assign from 'object-assign';
 import vkey from 'vkey';
 import AlertMessages from './AlertMessages';
-import { Fields } from 'FieldTypes';
+import { Fields } from '../../../../fields';
 import InvalidFieldType from './InvalidFieldType';
 import { Button, Form, Modal } from 'elemental';
 
@@ -32,8 +32,9 @@ const CreateForm = React.createClass({
 		var values = {};
 		Object.keys(this.props.list.fields).forEach(key => {
 			var field = this.props.list.fields[key];
-			var FieldComponent = Fields[field.type];
-			values[field.path] = FieldComponent.getDefaultValue(field);
+			if (field.defaultValue) {
+				values[field.path] = field.defaultValue;
+			}
 		});
 		return {
 			values: values,

@@ -4,56 +4,32 @@
  *
  * Should be included before other middleware (e.g. session management,
  * logging, etc) for reduced overhead.
+ *
+ * If KEYSTONE_BUILD is specified, it will build keystone live
+ * 'dev' uses dev build, 'hot' does hot reload in browser
+ * rest builds production build
+ * requires webpack and friends
  */
 
-var browserify = require('../middleware/browserify');
 var express = require('express');
 var less = require('less-middleware');
 var path = require('path');
-var str = require('string-to-stream');
 
-function buildFieldTypesStream (fieldTypes) {
-	var src = '';
-	var types = Object.keys(fieldTypes);
-	['Column', 'Field', 'Filter'].forEach(function (i) {
-		src += 'exports.' + i + 's = {\n';
-		types.forEach(function (type) {
-			if (typeof fieldTypes[type] !== 'string') return;
-			src += type + ': require("../../fields/types/' + type + '/' + fieldTypes[type] + i + '"),\n';
-		});
-		// Append ID and Unrecognised column types
-		if (i === 'Column') {
-			src += 'id: require("../../fields/components/columns/IdColumn"),\n';
-			src += '__unrecognised__: require("../../fields/components/columns/InvalidColumn"),\n';
-		}
+module.exports = function createStaticRouter (options) {
+	var build = options.build || process.env.KEYSTONE_BUILD;
+	var isHot = build === 'hot';
+	var isDev = build === 'dev';
+	var doWatch = isHot || isDev;
+	var adminPath = options.adminPath != null ? options.adminPath : '/keystone';
+	var entry = options.explorerOnly ? { explorer: `${__dirname}/../../../fields/explorer` } : undefined;
 
-		src += '};\n';
-	});
-	return str(src);
-}
-
-module.exports = function createStaticRouter (keystone) {
+	var customStylesPath = options.customStylesPath || '';
 	var router = express.Router();
-
-	/* Prepare browserify bundles */
-	var bundles = {
-		fields: browserify(buildFieldTypesStream(keystone.fieldTypes), 'FieldTypes'),
-		signin: browserify('./Signin/index.js'),
-		admin: browserify('./App/index.js'),
-	};
-
-	// prebuild static resources on the next tick in keystone dev mode; this
-	// improves first-request performance but delays server start
-	if (process.env.KEYSTONE_DEV === 'true' || process.env.KEYSTONE_PREBUILD_ADMIN === 'true') {
-		bundles.fields.build();
-		bundles.signin.build();
-		bundles.admin.build();
-	}
 
 	/* Prepare LESS options */
 	var elementalPath = path.join(path.dirname(require.resolve('elemental')), '..');
 	var reactSelectPath = path.join(path.dirname(require.resolve('react-select')), '..');
-	var customStylesPath = keystone.getPath('adminui custom styles') || '';
+	var publicDir = path.join(__dirname, '..', '..', 'public');
 
 	var lessOptions = {
 		render: {
@@ -61,18 +37,65 @@ module.exports = function createStaticRouter (keystone) {
 				elementalPath: JSON.stringify(elementalPath),
 				reactSelectPath: JSON.stringify(reactSelectPath),
 				customStylesPath: JSON.stringify(customStylesPath),
-				adminPath: JSON.stringify(keystone.get('admin path')),
+				adminPath: JSON.stringify(adminPath),
 			},
 		},
 	};
 
 	/* Configure router */
-	router.use('/styles', less(path.resolve(__dirname + '/../../public/styles'), lessOptions));
-	router.use('/styles/fonts', express.static(path.resolve(__dirname + '/../../public/js/lib/tinymce/skins/keystone/fonts')));
-	router.get('/js/fields.js', bundles.fields.serve);
-	router.get('/js/signin.js', bundles.signin.serve);
-	router.get('/js/admin.js', bundles.admin.serve);
-	router.use(express.static(path.resolve(__dirname + '/../../public')));
+	router.use('/styles', less(path.join(publicDir, 'styles'), lessOptions));
+	router.use('/styles/fonts', express.static(path.join(publicDir, 'lib', 'tinymce', 'skins', 'keystone', 'fonts')));
+
+	if (build) {
+		var webpack = require('webpack');
+		var webpackMW = require('webpack-dev-middleware');
+
+		require('babel-register');
+		var webpackConfig = require('../../../webpack.config.babel');
+
+		var config;
+		var wpOpts = {
+			adminPath: `/${adminPath}`.replace('//', '/'),
+			entry: entry,
+		};
+		if (isHot) {
+			config = webpackConfig.getHot(wpOpts);
+		} else if (isDev) {
+			config = webpackConfig.getDev(wpOpts);
+		} else {
+			config = webpackConfig.getProd(wpOpts);
+		}
+		var compiler = webpack(config);
+
+		router.use(webpackMW(
+			compiler,
+			{
+				watchOptions: doWatch ? {
+					aggregateTimeout: 100,
+				} : undefined,
+				publicPath: '/js/',
+				stats: {
+					cached: false,
+					colors: true,
+					progress: true,
+				},
+				headers: doWatch ? {
+					// Don't let the browser hang on to old code
+					'Cache-Control': 'no-cache, no-store',
+				} : undefined,
+			}
+		));
+		if (build === 'hot') {
+			var hotMW = require('webpack-hot-middleware');
+			router.use(hotMW(compiler));
+		}
+	}
+
+	router.use(express.static(publicDir));
+	// We can add or change things in the publicDir under lib/tinymce/
+	// thanks to precedence
+	const tinyMceDir = path.dirname(require.resolve('tinymce/tinymce'));
+	router.use('/lib/tinymce', express.static(tinyMceDir));
 
 	return router;
 };
