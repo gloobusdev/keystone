@@ -181,9 +181,54 @@
 	}
 }
 
+@media (min-width: 768px) {
+	.CapNavigation {
+		background-color: #F2F2F2;
+	}
 
+	.CapNavigation__menu {
+		display: flex;
+		flex-direction: column;
+		height: 90%;
+		justify-content: space-between;
+	}
 
+	.logoCont {
+		height: 10%;
+		background-color: #435523;
+	}
 
+	.CapNavigation__sections {
+		overflow: auto;
+		height: 95%;
+		.Dropdown {
+			&.custom_dropdown {
+				width: 100%;
+				button {
+					background: transparent;
+					border-top: 0;
+					border-radius: 0;
+					width: 100%;
+				}
+			}
+		}
+	}
+
+	.CapNavigation__bar__button--signout {
+		height: 5%;
+	}
+}
+
+.CapNavigation {
+	@media (max-width: 767px) {
+		display: none;
+	}
+}
+
+.CapNavigation__lists {
+	display: flex;
+	flex-direction: column;
+}
 // Mobile
 // ------------------------------
 

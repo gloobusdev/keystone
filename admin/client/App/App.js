@@ -8,8 +8,9 @@ import { Container } from 'elemental';
 import { Link } from 'react-router';
 
 import MobileNavigation from './components/Navigation/Mobile';
-import PrimaryNavigation from './components/Navigation/Primary';
-import SecondaryNavigation from './components/Navigation/Secondary';
+// import PrimaryNavigation from './components/Navigation/Primary';
+// import SecondaryNavigation from './components/Navigation/Secondary';
+import CapNavigation from './components/CapNavigation'
 import Footer from './components/Footer';
 
 const App = (props) => {
@@ -47,23 +48,18 @@ const App = (props) => {
 					sections={Keystone.nav.sections}
 					signoutUrl={Keystone.signoutUrl}
 				/>
-				<PrimaryNavigation
-					currentSectionKey={currentSectionKey}
+			</header>
+			<div className="keystone-body">
+				<CapNavigation
 					brand={Keystone.brand}
+					currentListKey={props.params.listId}
+					currentSectionKey={currentSectionKey}
 					sections={Keystone.nav.sections}
 					signoutUrl={Keystone.signoutUrl}
 				/>
-				{/* If a section is open currently, show the secondary nav */}
-				{(currentSection) ? (
-					<SecondaryNavigation
-						currentListKey={props.params.listId}
-						lists={currentSection.lists}
-						itemId={props.params.itemId}
-					/>
-				) : null}
-			</header>
-			<div className="keystone-body">
-				{children}
+				<div className="capContent">
+					{children}
+				</div>
 			</div>
 			<Footer
 				appversion={Keystone.appversion}
