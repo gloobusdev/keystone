@@ -53,10 +53,12 @@ const CapNavigation = React.createClass({
 
 		return (
 			<div className="CapNavigation">
-				<div className="logoCont">
-					<img src="" alt="Cap logo"/>
-				</div>
-					{this.renderMenu()}
+				<Link to={Keystone.adminPath}>
+					<div className="logoCont">
+						<img src="images/cap-logo.png" alt="Cap logo"/>
+					</div>
+				</Link>
+				{this.renderMenu()}
 			</div>
 		);
 	},
