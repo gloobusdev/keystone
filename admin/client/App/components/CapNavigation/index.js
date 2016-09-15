@@ -99,12 +99,14 @@ const CapNavigation = React.createClass({
 	},
 	render () {
 		return (
-			<nav className="cap-navbar">
-				<ul className="app-nav app-nav--cap">
+			<div className="cap-navbar">
 					{this.renderBrand()}
+			<nav className="cap-navigation">
+				<ul className="app-nav app-nav--cap">
 					{this.renderNavigation()}
 				</ul>
 			</nav>
+			</div>
 		);
 	},
 });
