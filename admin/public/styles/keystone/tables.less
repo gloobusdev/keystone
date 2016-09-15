@@ -23,7 +23,7 @@ table {
 .table > thead > tr > th {
 	color: mix(@body-bg, @text-color, 35%);
 	font-weight: 500;
-	text-transform: uppercase;
+	// text-transform: uppercase;
 }
 
 
@@ -146,4 +146,38 @@ table {
 	.th-sort--desc &:before {
 		opacity: .5;
 	}
+}
+
+//
+// Cap tables
+//-------------------------
+
+.Table > thead {
+	background-color: #F2F2F2;
+}
+.Table th {
+	border-bottom: none;
+	color: #484848;
+	font-weight: 500;
+}
+.Table td {
+	border-top: none;
+	border-bottom: 1px solid #D3D3D3;
+	color: #7F8082;
+}
+
+.Table a {
+	color: inherit;
+	&:hover {
+		color: inherit;
+	}
+}
+
+.Table .octicon.octicon-check {
+	color: #484848!important;
+}
+
+.Table .ItemList__link--interior {
+	color: #7F8082;
+	
 }
