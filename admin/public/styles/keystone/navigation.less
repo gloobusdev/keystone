@@ -125,8 +125,107 @@
 	}
 }
 
+// Cap Navigation
+// ----------------------
+.cap-navbar {
+	background-color: #F2F2F2;
+	border-right: 1px solid #D3D3D3;
+	max-width: 240px;
+	min-width: 240px;
+	overflow: auto;
+	@media (max-width: 767px) {
+		display: none;
+	}
+	a {
+		text-decoration: none;
+		&:focus,
+		&:hover {
+			outline: 0;
+		}
+	}
+}
 
+.app-nav--cap {
+	display: flex;
+	flex-direction: column;
+	// height: 90%;
+}
 
+.cap-navbar__brand {
+	background-color: #435421;
+	display: flex;
+	justify-content: center;
+}
+.cap-logo {
+	height: 2.5em;
+}
+
+.cap-primary__item {
+	color: #7F8082;
+	border-bottom: 1px solid #D3D3D3;
+	.octicon {
+		float: right;
+		margin-left: 1em;
+		transition: .33s;
+		&.rotateUp {
+			transform: rotateX(180deg);
+		}
+	}
+}
+.cap-navbar__icon {
+	height: 1em;
+	margin-right: .5em;
+}
+.cap-primary__link {
+	padding: 1em 1.5em;
+	color: inherit;
+	display: block;
+	.is-active &,
+	&:focus,
+	&:hover {
+		color: #484848;
+		background-color: #E5E5E5;
+		color: #484848;
+	}
+}
+
+.cap-dropdown__item {
+	background-color: #ededed;
+	color: #7F8082;
+	&:last-child {
+		border-bottom: 1px solid #D3D3D3;
+	}
+}
+.cap-dropdown__link {
+	padding: .5em 1.5em .5em 2em;
+	color: inherit;
+	display: block;
+	.is-active &,
+	&:focus,
+	&:hover {
+		color: #484848;
+		background-color: #E5E5E5;
+		color: #484848;
+	}
+}
+
+.toggleDropdown-enter {
+  opacity: 0;
+}
+
+.toggleDropdown-enter.toggleDropdown-enter-active {
+  opacity: 1;
+  transition: opacity 330ms ease-in;
+}
+
+.toggleDropdown-leave {
+  opacity: 1;
+}
+
+.toggleDropdown-leave.toggleDropdown-leave-active {
+  opacity: 0;
+  transition: opacity 330ms ease-in;
+}
 
 // Secondary
 // ------------------------------
@@ -181,57 +280,6 @@
 	}
 }
 
-@media (min-width: 768px) {
-	.CapNavigation {
-		background-color: #F2F2F2;
-	}
-
-	.CapNavigation__menu {
-		display: flex;
-		flex-direction: column;
-		height: 90%;
-		justify-content: space-between;
-	}
-
-	.logoCont {
-		height: 10%;
-		background-color: #435523;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.CapNavigation__sections {
-		overflow: auto;
-		height: 95%;
-		.Dropdown {
-			&.custom_dropdown {
-				width: 100%;
-				button {
-					background: transparent;
-					border-top: 0;
-					border-radius: 0;
-					width: 100%;
-				}
-			}
-		}
-	}
-
-	.CapNavigation__bar__button--signout {
-		height: 5%;
-	}
-}
-
-.CapNavigation {
-	@media (max-width: 767px) {
-		display: none;
-	}
-}
-
-.CapNavigation__lists {
-	display: flex;
-	flex-direction: column;
-}
 // Mobile
 // ------------------------------
 
