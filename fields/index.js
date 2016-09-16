@@ -57,6 +57,7 @@ export const Fields = {
 	textarray: require('./types/textarray/TextArrayField'),
 	textarea: require('./types/textarea/TextareaField'),
 	url: require('./types/url/UrlField'),
+	houseSummary: require('./types/houseSummary/HouseSummaryField'),
 };
 export const Filters = {
 	datetime: require('./types/datetime/DatetimeFilter'),
