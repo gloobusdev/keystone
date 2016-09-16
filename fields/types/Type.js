@@ -121,6 +121,7 @@ Field.prototype.getOptions = function () {
 			assign(this.__options, this.getProperties());
 		}
 		this.__options.hasFilterMethod = this.addFilterToQuery ? true : false;
+		this.__options.hasColumn = !this.noColumn;
 		this.__options.defaultValue = this.getDefaultValue();
 	}
 	return this.__options;

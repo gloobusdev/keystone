@@ -18,14 +18,18 @@ const truthy = (i) => i;
  * @return {Array}       The columns
  */
 function getColumns (list) {
-	return list.uiElements.map((col) => {
+	const cols = [];
+	list.uiElements.forEach((col) => {
 		if (col.type === 'heading') {
-			return { type: 'heading', content: col.content };
+			cols.push({ type: 'heading', content: col.content });
 		} else {
 			var field = list.fields[col.field];
-			return field ? { type: 'field', field: field, title: field.label, path: field.path } : null;
+			if (field && field.hasColumn) {
+				cols.push({ type: 'field', field: field, title: field.label, path: field.path });
+			}
 		}
-	}).filter(truthy);
+	});
+	return cols;
 }
 
 /**
