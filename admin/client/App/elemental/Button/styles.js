@@ -33,13 +33,12 @@ exports.common = {
 		'userSelect': 'none',
 		'verticalAlign': 'middle',
 		'whiteSpace': 'nowrap',
+		'backgroundImage': 'none !important',
 
 		':hover': {
-			color: theme.button.default.textColor,
 			textDecoration: 'none',
 		},
 		':focus': {
-			color: theme.button.default.textColor,
 			textDecoration: 'none',
 		},
 	},
@@ -79,34 +78,21 @@ exports.common = {
 // ----------------
 function buttonFillVariant (textColor, bgColor) {
 	const hoverStyles = {
-		...gradientVertical(lighten(bgColor, 10), darken(bgColor, 5)),
-		borderColor: `${darken(bgColor, 5)} ${darken(bgColor, 10)} ${darken(bgColor, 15)}`,
-		boxShadow: '0 1px 0 rgba(0,0,0,0.1)',
-		color: textColor,
+		backgroundColor: darken(theme.color.buttonBgDark, 15),
 		outline: 'none',
 	};
 	const focusStyles = {
-		...gradientVertical(lighten(bgColor, 10), darken(bgColor, 5)),
-		borderColor: `${darken(bgColor, 5)} ${darken(bgColor, 10)} ${darken(bgColor, 15)}`,
-		boxShadow: `0 0 0 3px ${fade(bgColor, 25)}`,
-		color: textColor,
 		outline: 'none',
 	};
 	const activeStyles = {
-		backgroundColor: darken(bgColor, 10),
-		backgroundImage: 'none',
-		borderColor: `${darken(bgColor, 25)} ${darken(bgColor, 15)} ${darken(bgColor, 10)}`,
-		boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.1)',
+		backgroundColor: darken(theme.color.buttonBgDark, 10),
 	};
 	return {
 		base: {
-			...gradientVertical(lighten(bgColor, 5), darken(bgColor, 10), bgColor),
-			'borderColor': `${darken(bgColor, 10)} ${darken(bgColor, 20)} ${darken(bgColor, 25)}`,
-			'boxShadow': 'inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-			'color': textColor,
+			'backgroundImage': 'none !important',
+			'backgroundColor': theme.color.buttonBgDark,
+			'color': theme.color.textWhite,
 			'fontWeight': 400,
-			'textShadow': '0 -1px 0 rgba(0, 0, 0, 0.25)',
-
 			':hover': hoverStyles,
 			':focus': focusStyles,
 			':active': activeStyles,
@@ -117,32 +103,22 @@ function buttonFillVariant (textColor, bgColor) {
 // TODO: This is pretty hacky, needs to be consolidated with the Variant() method
 // above (needs more theme variables to be implemented though)
 function buttonFillDefault () {
-	const borderColor = theme.input.border.color;
 	const hoverStyles = {
-		...gradientVertical('#fff', '#eee'),
-		borderColor: `${darken(borderColor, 5)} ${darken(borderColor, 5)} ${darken(borderColor, 10)}`,
-		boxShadow: '0 1px 0 rgba(0,0,0,0.1)',
+		backgroundColor: darken(theme.color.buttonBg, 15),
 		color: theme.color.text,
 	};
 	const focusStyles = {
-		borderColor: theme.color.primary,
-		boxShadow: `0 0 0 3px ${fade(theme.color.primary, 10)}`,
-		color: theme.color.text,
+		color: theme.color.textLight,
 		outline: 'none',
 	};
 	const activeStyles = {
-		background: '#e6e6e6',
-		borderColor: darken(borderColor, 10),
-		boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.1)',
 		color: theme.color.text,
 	};
 	return {
 		base: {
-			...gradientVertical('#fafafa', '#eaeaea'),
-			'borderColor': `${borderColor} ${darken(borderColor, 6)} ${darken(borderColor, 12)}`,
-			'color': theme.color.text,
-			'textShadow': '0 1px 0 white',
-
+			'backgroundImage': 'none !important',
+			'backgroundColor': theme.color.buttonBg,
+			'color': theme.color.textDark,
 			':hover': hoverStyles,
 			':focus': focusStyles,
 			':active': activeStyles,
@@ -156,7 +132,6 @@ function buttonFillDefault () {
 			':focus': {
 				...activeStyles,
 				...focusStyles,
-				boxShadow: `0 0 0 3px ${fade(theme.color.primary, 10)}, inset 0 1px 2px rgba(0, 0, 0, 0.1)`,
 			},
 			':active': activeStyles,
 		},
@@ -187,7 +162,6 @@ function buttonHollowVariant (textColor, borderColor) {
 		outline: 'none',
 	};
 	const focusOnlyStyles = {
-		boxShadow: `0 0 0 3px ${fade(borderColor, 10)}`,
 	};
 	const activeStyles = {
 		backgroundColor: fade(borderColor, 35),
@@ -197,6 +171,7 @@ function buttonHollowVariant (textColor, borderColor) {
 
 	return {
 		base: {
+			'backgroundImage': 'none !important',
 			'background': 'none',
 			'borderColor': borderColor,
 			'color': textColor,
@@ -225,6 +200,7 @@ function buttonLinkVariant (textColor, hoverColor) {
 	};
 	return {
 		base: {
+			'backgroundImage': 'none !important',
 			'background': 'none',
 			'border': 0,
 			'boxShadow': 'none',
@@ -242,10 +218,8 @@ function buttonLinkVariant (textColor, hoverColor) {
 function buttonLinkDelete () {
 	const styles = buttonLinkVariant(theme.color.gray40, theme.color.danger);
 	const hoverStyles = {
-		...gradientVertical(lighten(theme.color.danger, 10), darken(theme.color.danger, 10)),
 		backgroundColor: theme.color.danger,
 		borderColor: `${darken(theme.color.danger, 4)} ${darken(theme.color.danger, 8)} ${darken(theme.color.danger, 12)}`,
-		boxShadow: '0 1px 0 rgba(0,0,0,0.1)',
 		color: 'white',
 		textDecoration: 'none',
 	};
@@ -253,7 +227,6 @@ function buttonLinkDelete () {
 		backgroundColor: darken(theme.color.danger, 4),
 		backgroundImage: 'none',
 		borderColor: `${darken(theme.color.danger, 12)} ${darken(theme.color.danger, 8)} ${darken(theme.color.danger, 8)}`,
-		boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.1)',
 		color: 'white',
 	};
 	return {

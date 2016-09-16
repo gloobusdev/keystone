@@ -109,22 +109,18 @@ function ListHeaderToolbar ({
 						/>
 					</Section>
 					<Section className={classes.expand}>
-						<ButtonDivider>
-							<GlyphButton
-								active={expandIsActive}
-								glyph="mirror"
-								onClick={expandOnClick}
-								title="Expand table width"
-							/>
-						</ButtonDivider>
+						<GlyphButton
+							active={expandIsActive}
+							glyph="mirror"
+							onClick={expandOnClick}
+							title="Expand table width"
+						/>
 					</Section>
 					{createIsAvailable && <Section className={classes.create}>
-						<ButtonDivider>
-							<CreateButton
-								listName={createListName}
-								onClick={createOnClick}
-							/>
-						</ButtonDivider>
+						<CreateButton
+							listName={createListName}
+							onClick={createOnClick}
+						/>
 					</Section>}
 				</Group>
 			</Section>

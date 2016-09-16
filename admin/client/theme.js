@@ -49,7 +49,7 @@ theme.color = {
 	success:             '#34c240',
 	create:              '#34c240', // alias for success
 	primary:             '#1385e5',
-	info:                '#1385e5', // alias for primary
+	info:                '#435421', // alias for primary
 	warning:             '#FA3',
 	danger:              '#d64242',
 	error:               '#d64242', // alias for danger
@@ -76,12 +76,19 @@ theme.color = {
 	twitter:             '#55ACEE',
 	youtube:             '#cd201f',
 	vimeo:               '#1ab7ea',
+
+	// for Cap
+	textWhite:						'#ffffff',
+	textLight:						'#7F8082',
+	textDark:							'#484848',
+	buttonBg:							'#E0E0E0',
+	buttonBgDark:					'#737373',
 };
 
-// border radii
+// border radius
 
 theme.borderRadius = {
-	small: '0.125rem',
+	small: '0.15em',
 	default: '0.3rem',
 	large: '0.5rem',
 };
@@ -104,24 +111,24 @@ theme.spacing = {
 // button
 
 theme.button = {
-	borderRadius: theme.borderRadius.default,
+	borderRadius: theme.borderRadius.small,
 	borderWidth: 1,
 	font: {
 		weight: 500,
 	},
 	paddingHorizontal: '1em',
 	default: {
-		bgColor: theme.color.primary,
+		bgColor: theme.color.buttonBg,
 		borderColor: blend(theme.color.primary, theme.color.body, 60),
 		textColor: theme.color.primary,
 	},
 	primary: {
-		bgColor: theme.color.primary,
+		bgColor: theme.color.buttonBg,
 		borderColor: blend(theme.color.primary, theme.color.body, 60),
 		textColor: theme.color.primary,
 	},
 	success: {
-		bgColor: theme.color.success,
+		bgColor: theme.color.buttonBg,
 		borderColor: blend(theme.color.success, theme.color.body, 60),
 		textColor: theme.color.success,
 	},
@@ -189,12 +196,11 @@ theme.input = {
 	lineHeight: theme.component.lineHeight,
 	height: theme.component.height,
 	border: {
-		color: '#ccc',
-		colorHover: '#bbb',
+		color: theme.color.info,
+		colorHover: theme.color.info,
 		colorFocus: theme.color.info,
 	},
-	boxShadow: 'inset 0 1px 1px rgba(0, 0, 0, 0.075)',
-	boxShadowFocus: `inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 0 3px ${fade(theme.color.info, 10)}`,
+	borderRadius: theme.borderRadius.small,
 	paddingHorizontal: '.75em',
 };
 

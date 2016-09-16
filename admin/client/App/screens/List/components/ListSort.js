@@ -1,5 +1,7 @@
 import { FormNote, FormField, FormInput } from 'elemental';
 import React, { PropTypes } from 'react';
+import { css, StyleSheet } from 'aphrodite/no-important';
+import theme from '../../../../theme';
 import vkey from 'vkey';
 
 import Popout from '../../../shared/Popout';
@@ -96,12 +98,24 @@ var ListSort = React.createClass({
 		const activeSortPath = this.props.activeSort.paths[0];
 		const formFieldStyles = { borderBottom: '1px dashed rgba(0,0,0,0.1)', paddingBottom: '1em' };
 
+		const classes = StyleSheet.create({
+			listHeader: {
+				color: theme.color.textDark,
+			},
+			a: {
+				color: theme.color.textLight,
+				':hover': {
+					color: theme.color.textLight,
+				}
+			}
+		})
+
 		return (
 			<span>
 				{activeSortPath && (
-					<span>
-						<span style={{ color: '#999' }}> sorted by </span>
-						<a id="listHeaderSortButton" href="javascript:;" onClick={this.openPopout}>
+					<span className={css(classes.listHeader)}>
+						<span> sorted by </span>
+						<a id="listHeaderSortButton" className={css(classes.a)} href="javascript:;" onClick={this.openPopout}>
 							{activeSortPath.label.toLowerCase()}
 							{activeSortPath.invert ? ' (descending)' : ''}
 							<span className="disclosure-arrow" />

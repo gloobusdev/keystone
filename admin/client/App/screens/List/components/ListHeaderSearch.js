@@ -31,7 +31,7 @@ function ListHeaderSearch ({
 				title="Clear search query"
 				type="button"
 			>
-				<Glyph name={value.length ? 'x' : 'search'} />
+				<Glyph name={value.length ? 'x' : ''} />
 			</button>
 		</div>
 	);

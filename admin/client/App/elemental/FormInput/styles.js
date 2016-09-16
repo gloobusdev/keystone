@@ -9,10 +9,10 @@ module.exports = {
 		'appearance': 'none',
 		'backgroundColor': theme.input.bgColor,
 		'backgroundImage': 'none',
-		'border': `1px solid ${theme.input.border.color}`,
-		'borderRadius': '0.25em', // FIXME
+		'border': `1px solid ${theme.color.buttonBg}`,
+		'borderRadius': theme.input.borderRadius,
 		'boxShadow': theme.input.boxShadow,
-		'color': 'inherit', // FIXME
+		'color': theme.color.textDark,
 		'display': 'block',
 		'height': theme.input.height,
 		'lineHeight': theme.input.lineHeight,
@@ -21,12 +21,11 @@ module.exports = {
 		'width': '100%',
 
 		':hover': {
-			borderColor: theme.input.border.colorHover,
+			borderColor: theme.color.buttonBgDark,
 			outline: 0,
 		},
 		':focus': {
-			borderColor: theme.input.border.colorFocus,
-			boxShadow: theme.input.boxShadowFocus,
+			borderColor: theme.color.buttonBgDark,
 			outline: 0,
 		},
 	},

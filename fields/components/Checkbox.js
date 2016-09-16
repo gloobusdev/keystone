@@ -34,7 +34,7 @@ var Checkbox = React.createClass({
 		const { checked, readonly } = this.props;
 		const { active, focus, hover } = this.state;
 
-		const checkedColor = '#3999fc';
+		const checkedColor = '#737373';
 
 		let background = (checked && !readonly) ? checkedColor : 'white';
 		let borderColor = (checked && !readonly) ? 'rgba(0,0,0,0.15) rgba(0,0,0,0.1) rgba(0,0,0,0.05)' : 'rgba(0,0,0,0.3) rgba(0,0,0,0.2) rgba(0,0,0,0.15)';

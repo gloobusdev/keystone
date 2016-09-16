@@ -32,10 +32,8 @@ ListHeaderTitle.propTypes = {
 
 const classes = StyleSheet.create({
 	heading: {
-		[`@media (max-width: ${theme.breakpoint.mobileMax})`]: {
-			fontSize: '1.25em',
-			fontWeight: 500,
-		},
+		fontSize: '1.2em',
+		fontWeight: '500',
 	},
 });
 
