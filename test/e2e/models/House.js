@@ -40,6 +40,7 @@ const days = [
 
 House.add(
 	{bewerkt: {type: Types.Boolean},},
+	{summary: {view: Types.CapHouseSummary}},
 	'Basic Info',
 	{
 		fmId: {type: Types.Text, label: 'FileMaker ID', index: true, noedit: true, collapse: true},

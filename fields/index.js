@@ -57,7 +57,7 @@ export const Fields = {
 	textarray: require('./types/textarray/TextArrayField'),
 	textarea: require('./types/textarea/TextareaField'),
 	url: require('./types/url/UrlField'),
-	houseSummary: require('./types/houseSummary/HouseSummaryField'),
+	capHouseSummary: require('./types/capHouseSummary/CapHouseSummaryField'),
 	heading: require('./types/heading/HeadingField'),
 	nested: require('./types/nested/NestedField'),
 };
