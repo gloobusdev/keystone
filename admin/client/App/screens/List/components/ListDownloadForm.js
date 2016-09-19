@@ -33,6 +33,7 @@ var ListDownloadForm = React.createClass({
 		return selectedColumns;
 	},
 	getListUIElements () {
+		// TODO nesting
 		return this.props.list.uiElements.map((el) => {
 			return el.type === 'field' ? {
 				type: 'field',

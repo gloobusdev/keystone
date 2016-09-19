@@ -58,6 +58,8 @@ export const Fields = {
 	textarea: require('./types/textarea/TextareaField'),
 	url: require('./types/url/UrlField'),
 	houseSummary: require('./types/houseSummary/HouseSummaryField'),
+	heading: require('./types/heading/HeadingField'),
+	nested: require('./types/nested/NestedField'),
 };
 export const Filters = {
 	datetime: require('./types/datetime/DatetimeFilter'),

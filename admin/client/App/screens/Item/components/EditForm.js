@@ -38,6 +38,27 @@ function getNameFromData (data) {
 	return data;
 }
 
+function getFieldProps (field, values, alerts, onChange) {
+	let isValid = true;
+	// Display validation errors inline
+	if (alerts && alerts.error && alerts.error.error === 'validation errors') {
+		if (alerts.error.detail[field.path]) {
+			// NOTE: This won't work yet, as ElementalUI doesn't allow
+			// passed in isValid, only invalidates via internal state.
+			// PR to fix that: https://github.com/elementalui/elemental/pull/149
+			isValid = false;
+		}
+	}
+	return {
+		...field,
+		value: values[field.path],
+		isValid,
+		values,
+		onChange,
+		mode: 'edit',
+	};
+}
+
 function smoothScrollTop () {
 	if (document.body.scrollTop || document.documentElement.scrollTop) {
 		window.scrollBy(0, -50);
@@ -46,6 +67,75 @@ function smoothScrollTop () {
 		clearTimeout(timeOut);
 	}
 }
+
+const InvalidView = ({ view }) => (
+	<div>
+		Unknown view: <code>{JSON.stringify(view)}</code>
+	</div>
+);
+
+const makeUiChildren = (elems, uiProps, shouldFocus = true) => elems.map((el, index) => {
+	const {
+		list: { fields, nameField, nameFieldIsFormHeader },
+		values, alerts, onChange,
+	} = uiProps;
+
+	// Don't render the name field if it is the header since it'll be rendered in BIG above
+	// the list. (see renderNameField method, this is the reverse check of the one it does)
+	if (nameField && el.field === nameField.path && nameFieldIsFormHeader) {
+		return;
+	}
+
+	if (el.type === 'heading') {
+		const props = {
+			...el,
+			values,
+			key: index,
+		};
+		return <FormHeading {...props}/>;
+	}
+	if (el.type === 'view') {
+		const View = Fields[el.view];
+		if (!View) {
+			return <InvalidView view={el} key={index}/>;
+		}
+		const children = el.children ? (
+			makeUiChildren(el.children, uiProps, shouldFocus)
+		) : [];
+		const props = {
+			...el,
+			values,
+			children,
+			key: index,
+		};
+		return <View {...props}/>;
+	}
+	if (el.type === 'field') {
+		var field = fields[el.field];
+		var props = getFieldProps(field, values, alerts, onChange);
+		const Field = Fields[field.type];
+		if (typeof Field !== 'function') {
+			return <InvalidFieldType {...field} key={index}/>;
+		}
+		if (props.dependsOn) {
+			props.currentDependencies = {};
+			Object.keys(props.dependsOn).forEach(dep => {
+				props.currentDependencies[dep] = values[dep];
+			});
+		}
+		props.key = index;
+		if (shouldFocus) {
+			props.autoFocus = true;
+			shouldFocus = false;
+		}
+		return <Field {...props}/>;
+	}
+});
+
+const FormUi = (props) => {
+	const children = makeUiChildren(props.list.uiElements, props);
+	return <div>{children}</div>;
+};
 
 var EditForm = React.createClass({
 	displayName: 'EditForm',
@@ -59,26 +149,7 @@ var EditForm = React.createClass({
 			confirmationDialog: null,
 			loading: false,
 			lastValues: null, // used for resetting
-			focusFirstField: true,
 		};
-	},
-	getFieldProps (field) {
-		const props = assign({}, field);
-		const alerts = this.state.alerts;
-		// Display validation errors inline
-		if (alerts && alerts.error && alerts.error.error === 'validation errors') {
-			if (alerts.error.detail[field.path]) {
-				// NOTE: This won't work yet, as ElementalUI doesn't allow
-				// passed in isValid, only invalidates via internal state.
-				// PR to fix that: https://github.com/elementalui/elemental/pull/149
-				props.isValid = false;
-			}
-		}
-		props.value = this.state.values[field.path];
-		props.values = this.state.values;
-		props.onChange = this.handleChange;
-		props.mode = 'edit';
-		return props;
 	},
 	handleChange (event) {
 		const values = assign({}, this.state.values);
@@ -204,6 +275,11 @@ var EditForm = React.createClass({
 			);
 		}
 	},
+	getFieldProps (field) {
+		const { values, alerts } = this.state;
+		const onChange = this.handleChange;
+		return getFieldProps(field, values, alerts, onChange);
+	},
 	renderNameField () {
 		var nameField = this.props.list.nameField;
 		var nameFieldIsFormHeader = this.props.list.nameFieldIsFormHeader;
@@ -230,48 +306,6 @@ var EditForm = React.createClass({
 				<h2>{this.props.data.name || '(no name)'}</h2>
 			);
 		}
-	},
-	renderFormElements () {
-		var headings = 0;
-
-		return this.props.list.uiElements.map((el, index) => {
-			// Don't render the name field if it is the header since it'll be rendered in BIG above
-			// the list. (see renderNameField method, this is the reverse check of the one it does)
-			if (this.props.list.nameField && el.field === this.props.list.nameField.path && this.props.list.nameFieldIsFormHeader) {
-				if (this.state.focusFirstField) {
-					this.setState({
-						focusFirstField: false,
-					});
-				}
-				return;
-			}
-
-			if (el.type === 'heading') {
-				headings++;
-				el.options.values = this.state.values;
-				el.key = 'h-' + headings;
-				return React.createElement(FormHeading, el);
-			}
-
-			if (el.type === 'field') {
-				var field = this.props.list.fields[el.field];
-				var props = this.getFieldProps(field);
-				if (typeof Fields[field.type] !== 'function') {
-					return React.createElement(InvalidFieldType, { type: field.type, path: field.path, key: field.path });
-				}
-				if (props.dependsOn) {
-					props.currentDependencies = {};
-					Object.keys(props.dependsOn).forEach(dep => {
-						props.currentDependencies[dep] = this.state.values[dep];
-					});
-				}
-				props.key = field.path;
-				if (index === 0 && this.state.focusFirstField) {
-					props.autoFocus = true;
-				}
-				return React.createElement(Fields[field.type], props);
-			}
-		}, this);
 	},
 	renderFooterBar () {
 		const { loading } = this.state;
@@ -379,6 +413,9 @@ var EditForm = React.createClass({
 		) : null;
 	},
 	render () {
+		const { list } = this.props;
+		const { values, alerts } = this.state;
+		const onChange = this.handleChange;
 		return (
 			<form ref="editForm" className="EditForm-container">
 				{(this.state.alerts) ? <AlertMessages alerts={this.state.alerts} /> : null}
@@ -387,7 +424,7 @@ var EditForm = React.createClass({
 						<Form type="horizontal" className="EditForm" component="div">
 							{this.renderNameField()}
 							{this.renderKeyOrId()}
-							{this.renderFormElements()}
+							<FormUi {...{ list, values, alerts, onChange }}/>
 							{this.renderTrackingMeta()}
 						</Form>
 					</Col>

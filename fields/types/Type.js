@@ -243,6 +243,9 @@ definePrototypeGetters(Field, {
  * Overridden by some fieldType Classes
  */
 Field.prototype.addToSchema = function (schema) {
+	if (this.viewOnly) {
+		return;
+	}
 	var ops = (this._nativeType) ? _.defaults({ type: this._nativeType }, this.options) : this.options;
 	schema.path(this.path, ops);
 	this.bindUnderscoreMethods();

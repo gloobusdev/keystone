@@ -20,6 +20,7 @@ const truthy = (i) => i;
 function getColumns (list) {
 	const cols = [];
 	list.uiElements.forEach((col) => {
+		// TODO nesting and heading view
 		if (col.type === 'heading') {
 			cols.push({ type: 'heading', content: col.content });
 		} else {
