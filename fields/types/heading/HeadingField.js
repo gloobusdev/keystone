@@ -11,13 +11,17 @@ module.exports = Field.create({
 		type: 'Heading',
 	},
 	renderField () {
-		const { options: { dependsOn, heading }, values, children } = this.props;
+		const {
+			options: { dependsOn, heading, collapsible },
+			values, children,
+		} = this.props;
+		const { collapsed } = this.state;
 		if (!evalDependsOn(dependsOn, values)) {
 			return null;
 		}
 		return (
 			<section>
-				<h3 className="form-heading">[todo collapse] {heading}</h3>
+				<h3 className="form-heading">[TODO collapse {`${collapsed}/${collapsible}`}] {heading}</h3>
 				{children}
 			</section>
 		);

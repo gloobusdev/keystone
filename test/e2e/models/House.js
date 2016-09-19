@@ -3,6 +3,7 @@ var Types = keystone.Field.Types
 const House = new keystone.List('House', {
 	drillDown: 'prices agent',
 	track: true,
+	collapseSections: true,
 })
 const stars = [
 	{value: 1, label: '⭐✩✩✩✩✩'},
