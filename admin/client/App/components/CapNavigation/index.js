@@ -33,7 +33,7 @@ const CapNavigation = React.createClass({
 				title={'Dashboard - ' + brand}
 				to={Keystone.adminPath}
 			>
-				<img className="cap-logo" src="images/cap-logo.png" alt="Cap logo"/>
+				<img className="cap-logo" src={`${Keystone.adminPath}/images/cap-logo.png`} alt="Cap logo"/>
 			</PrimaryNavItem>
 		);
 	},
@@ -86,7 +86,7 @@ const CapNavigation = React.createClass({
 						to={href}
 						onClick={this.toggleDropdown}
 					>
-						<img className="cap-navbar__icon" src={`images/${icon}.svg`}/>
+						<img className="cap-navbar__icon" src={`${Keystone.adminPath}/images/${icon}.svg`}/>
 						{section.label}
 					</PrimaryNavItem>
 				)

@@ -43,7 +43,7 @@ const Dropdown = React.createClass({
 						onClick={this.toggleDropdown}
 						dropdown
 					>
-						<img className="cap-navbar__icon" src={`images/${icon}.svg`}/>
+						<img className="cap-navbar__icon" src={`${Keystone.adminPath}/images/${icon}.svg`}/>
 						{section.label}
 						{section.lists.length > 1 &&
 							<span className={
