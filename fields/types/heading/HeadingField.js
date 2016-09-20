@@ -33,7 +33,7 @@ module.exports = Field.create({
 							{rotateDown: !this.state.collapsed}
 						)}
 					/>
-					<h3 className="form-heading">[TODO collapse {`${collapsed}/${collapsible}`}] {heading}</h3>
+					<h3 className="form-heading">{heading}</h3>
 				</div>
 				<ReactCSSTransitionGroup 
 					transitionName="toggleDropdown" 
