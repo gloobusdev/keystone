@@ -7,6 +7,11 @@ import xhr from 'xhr';
 import { Button, InputGroup } from 'elemental';
 import _ from 'lodash';
 
+import json2csv from 'json2csv'
+import FileSaver from 'file-saver'
+import cs from 'classnames'
+import moment from 'moment'
+
 function compareValues (current, next) {
 	const currentLength = current ? current.length : 0;
 	const nextLength = next ? next.length : 0;
@@ -184,6 +189,68 @@ module.exports = Field.create({
 		this.closeCreate();
 	},
 
+	//TODO: this is an Even schema specific function, please convert it a general usable download button for relationships
+	triggerFileDownload () {
+		// everithing is here: what are in Contact schema: console.log( this._itemsCache );
+		if( this.state.value && this.state.value.length > 0 ) {
+			const subscribers = this.state.value;
+			const formattedSub = subscribers.map(sub => ({officeId: sub.officeId, broker: sub.brokerName, firstName: sub.fields.name && sub.fields.name.first, lastName: sub.fields.name && sub.fields.name.last, street: cs(sub.street, sub.houseNum, sub.houseNumExt), zip: cs(sub.zip, sub.city), birthday: sub.fields.birthday && moment(sub.fields.birthday).format("YYYY-MM-DD"), email: sub.email}));
+			
+			const fields = [
+				{
+					label: 'OfficeNr', // (optional, column will be labeled 'path.to.something' if not defined) 
+					value: 'officeId', // data.path.to.something 
+					default: '-' // default if value is not found (optional, overrides `defaultValue` for column) 
+				}, 
+				{
+					label: 'Broker', 
+					value: 'broker',
+					default: '-'
+				}, 
+				{
+					label: 'Naam',
+					value: 'firstName',
+					default: '-'
+				}, 
+				{
+					label: 'Vrnaam',
+					value: 'lastName',
+					default: '-'
+				},				 
+				{
+					label: 'Adres',
+					value: 'street',
+					default: '-'
+				},				 
+				{
+					label: 'Gemeente',
+					value: 'zip',
+					default: '-'
+				},				 
+				{
+					label: 'GeboorteD',
+					value: 'birthday',
+					default: '-'
+				},								 
+				{
+					label: 'Email',
+					value: 'email',
+					default: '-'
+				}];
+
+			json2csv(
+				{data: formattedSub, fields, del: ';'}, 
+				function(err, csv){
+					if (!err) {					
+						const blob = new Blob([csv], {type: "text/csv;charset=utf-8"})
+						FileSaver.saveAs(blob, `event-subscribers.csv`)
+					}
+				}
+			);
+				
+		}	
+	},
+
 	renderSelect (noedit) {
 		return (
 			<Select.Async
@@ -219,7 +286,11 @@ module.exports = Field.create({
 					list={listsByKey[this.props.refList.key]}
 					isOpen={this.state.createIsOpen}
 					onCreate={this.onCreate}
-					onCancel={this.closeCreate} />
+					onCancel={this.closeCreate} />		
+					{this.props.path == "subscriberIds" ?
+					<Button onClick={this.triggerFileDownload}>
+						Download CSV
+					</Button> : ""}
 			</InputGroup>
 		);
 	},
