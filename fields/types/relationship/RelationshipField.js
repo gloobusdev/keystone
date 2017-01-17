@@ -194,8 +194,8 @@ module.exports = Field.create({
 		// everithing is here: what are in Contact schema: console.log( this._itemsCache );
 		if( this.state.value && this.state.value.length > 0 ) {
 			const subscribers = this.state.value;
-			const formattedSub = subscribers.map(sub => ({officeId: sub.officeId, broker: sub.brokerName, firstName: sub.fields.name && sub.fields.name.first, lastName: sub.fields.name && sub.fields.name.last, street: cs(sub.street, sub.houseNum, sub.houseNumExt), zip: cs(sub.zip, sub.city), birthday: sub.fields.birthday && moment(sub.fields.birthday).format("YYYY-MM-DD"), email: sub.email}));
-			
+			const formattedSub = subscribers.map(sub => ({officeId: sub.fields.officeId, broker: sub.fields.brokerName, firstName: sub.fields.name && sub.fields.name.first, lastName: sub.fields.name && sub.fields.name.last, street: cs(sub.fields.street, sub.fields.houseNum, sub.fields.houseNumExt), zip: cs(sub.fields.zip, sub.fields.city), birthday: sub.fields.birthday && moment(sub.fields.birthday).format("YYYY-MM-DD"), email: sub.fields.email}));
+					
 			const fields = [
 				{
 					label: 'OfficeNr', // (optional, column will be labeled 'path.to.something' if not defined) 
