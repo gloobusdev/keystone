@@ -2,6 +2,7 @@ var FieldType = require('../Type');
 var util = require('util');
 var assign = require('object-assign');
 var utils = require('keystone-utils');
+var underscore = require('underscore');
 
 var debug = require('debug')('keystone:fields:file');
 
@@ -71,7 +72,13 @@ file.prototype.addToSchema = function (schema) {
  * Uploads a new file
  */
 file.prototype.upload = function (item, file, callback) {
-	var field = this;
+	var field = this;	
+	var filetype = file.mimetype || file.type;
+
+	if (field.options.allowedTypes && !underscore.includes(field.options.allowedTypes, filetype)) {
+		return callback(new Error('Unsupported File Type: ' + filetype));
+	}
+	
 	// TODO; Validate there is actuall a file to upload
 	debug('[%s.%s] Uploading file for item %s:', this.list.key, this.path, item.id, file);
 	this.storage.uploadFile(file, function (err, result) {
