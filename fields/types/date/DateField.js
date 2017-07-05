@@ -44,7 +44,7 @@ module.exports = Field.create({
 				format = 'DD-MM-YYYY'
 			}
 		}
-		var m = moment(value);
+		var m = moment(value, format, strict);
 		if (this.props.isUTC) m.utc();
 		return m;
 	},
