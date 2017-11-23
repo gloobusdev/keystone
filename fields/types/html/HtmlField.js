@@ -134,6 +134,7 @@ module.exports = Field.create({
 						className={fieldClassName}
 						style={style}
 						tinymceConfig={tinymceConfig}
+						onSetupEditor={(tinymceConfig && tinymceConfig.onSetupEditor) || null}
 						name={name}
 						value={value}
 					/>
