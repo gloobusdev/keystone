@@ -1,7 +1,5 @@
-webpackJsonp([11],{638:function(e,t,a){"use strict"
-function l(e){return e&&e.__esModule?e:{default:e}}var o=a(1),r=l(o),p=a(36),s=l(p),u=a(26),n=l(u),i=a(27),d=l(i),f=r.default.createClass({displayName:"DateColumn",propTypes:{col:r.default.PropTypes.object,data:r.default.PropTypes.object,linkTo:r.default.PropTypes.string},getValue:function(){var e=this.props.data.fields[this.props.col.path]
-if(!e)return null
-var t="datetime"===this.props.col.type?"MMMM Do YYYY, h:mm:ss a":"MMMM Do YYYY"
-return(0,s.default)(e).format(t)},render:function(){var e=this.getValue(),t=!(e||!this.props.linkTo)
-return r.default.createElement(n.default,null,r.default.createElement(d.default,{field:this.props.col.type,to:this.props.linkTo,empty:t},e))}})
-e.exports=f}})
+webpackJsonp([11],{726:function(e,t,a){"use strict"
+function r(e){return e&&e.__esModule?e:{default:e}}var l=a(1),u=r(l),s=a(29),p=r(s),o=a(30),n=r(o),d=a(122),i=u.default.createClass({displayName:"ListColumn",propTypes:{col:u.default.PropTypes.object,data:u.default.PropTypes.object},getValue:function(){var e=this.props.data.fields[this.props.col.path]
+return Array.isArray(e)?(0,d.plural)(e.length,"* Value","* Values"):""},render:function(){var e=this.getValue()
+return u.default.createElement(p.default,null,u.default.createElement(n.default,{padded:!0,interior:!0,field:this.props.col.type},e))}})
+e.exports=i}})

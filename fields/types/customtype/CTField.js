@@ -10,7 +10,7 @@ import draftToHtml from 'draftjs-to-html';
 import htmlToDraft from 'html-to-draftjs';
 
 module.exports = Field.create({
-	displayName: 'Custom Type Display Name',
+	displayName: 'Custom Type',
 	propTypes: {
 		path: PropTypes.string.isRequired,
 		value: PropTypes.object,

@@ -3,7 +3,7 @@ import ItemsTableCell from '../../components/ItemsTableCell';
 import ItemsTableValue from '../../components/ItemsTableValue';
 
 var CTColumn = React.createClass({
-	displayName: 'CTColumn',
+	displayName: 'Custom Type',
 	propTypes: {
 		col: React.PropTypes.object,
 		data: React.PropTypes.object,
