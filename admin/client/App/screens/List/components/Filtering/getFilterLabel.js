@@ -104,6 +104,7 @@ function getFilterLabel (field, value) {
 		case 'color':
 		case 'email':
 		case 'html':
+		case 'CT':
 		case 'key':
 		case 'markdown':
 		case 'name':
