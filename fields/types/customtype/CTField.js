@@ -5,20 +5,23 @@ import { FormInput } from 'elemental';
 import { Editor } from 'react-draft-wysiwyg';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
 
+import styles from './CTstyle.css';
+import { Flex, Item } from 'react-flex';
+import 'react-flex/index.css';
+import cs from 'classnames';
+
 import { EditorState, convertToRaw, ContentState } from 'draft-js';
 import draftToHtml from 'draftjs-to-html';
 import htmlToDraft from 'html-to-draftjs';
 
 module.exports = Field.create({
 	displayName: 'Custom Type',
-	propTypes: {
-		path: PropTypes.string.isRequired,
-		value: PropTypes.object,
-	},
+	/* propTypes: {
+		formatString: React.PropTypes.object,
+	}, */
 	statics: {
 		type: 'CT',
 	},
-
 	focusTargetRef: 'customEditor',
 
 	getInitialState() {
@@ -28,12 +31,15 @@ module.exports = Field.create({
 		if (contentBlock) {
 			const contentState = ContentState.createFromBlockArray(contentBlock.contentBlocks);
 			editorState = EditorState.createWithContent(contentState);
-			/* this.state = {
+			this.state = {
 				editorState,
-			}; */
+			};
 		}
+
 		return {
 			editorState,
+			currentTab1: (this.props.options && this.props.options.tabs
+				&& this.props.options.tabs[0] && this.props.options.tabs[0].ref) || "",
 		};
 	},
 
@@ -86,32 +92,52 @@ module.exports = Field.create({
 		});
 	},
 
+	onTab1Set(tabName) {
+		console.log(tabName)
+		this.setState({
+			currentTab1: tabName
+		});
+	},
+
 	renderField () {
-
-		const style = {
-			border: "1px solid gray",
-			backgroundColor: "white",
-		}
-
-		const style2 = {
-			border: "1px solid gray",
-			width: "100%",
-		}
-
-		const { editorState } = this.state;
-
-	/* 	<FormInput
-		name={this.getInputName(this.props.path)}
-		ref="focusTarget"
-		value={this.props.value}
-		onChange={this.valueChanged}
-		autoComplete="off"
-		type="email"
-	/> */
-
+		const { editorState, currentTab1 } = this.state;
+		const { options } = this.props;
+		const { tabs } = options;
 		return (
 			<div>
-				<div style={Object.assign({}, this.props.globalStyle, style)}>
+				<Flex column flex={1} alignItems="stretch">
+					<Item row alignItems="stretch" flex={1} key={"primaryTabs"}>
+						{tabs && tabs.map((tab, index) => {
+							return (
+								<Flex column alignItems="start" key={"primaryTabNumber"+index}
+									className={cs(styles.tab, styles.noselect, (tab.ref === currentTab1) ? styles.active : null)}
+									onClick={(ev)=>{this.onTab1Set(tab.ref)}}
+								>
+									{tab.label}
+								</Flex>
+							);
+						})}
+					</Item>
+					<Item row alignItems="stretch" flex={1} key={"primaryTabContents"}>
+						{tabs && tabs.filter((tab, index) => (tab.ref === currentTab1))
+							.map((tab, index) => {
+								return (
+									<Flex column alignItems="start" flex={1} key={"primaryTabContentNumber"+index}
+										className={cs(styles.tabContent)}
+									>
+										{tab.ref + " === " + currentTab1 + " -> " }
+									</Flex>
+								);
+							}
+						)
+					}
+					</Item>
+				</Flex>
+
+				<div style={Object.assign({}, this.props.globalStyle, {
+					border: "1px solid gray",
+					backgroundColor: "white",
+				})}>
 					<Editor
 						editorState={editorState}
 						toolbarClassName="toolbarClassName"
@@ -129,17 +155,16 @@ module.exports = Field.create({
 						// name={this.getInputName(this.props.path)}
 					/>
 				</div>
-
 				<textarea
 					disabled
-					style={Object.assign({}, this.props.globalStyle, style2)}
+					style={Object.assign({}, this.props.globalStyle, {
+						border: "1px solid gray",
+						width: "100%",
+					})}
 					value={draftToHtml(convertToRaw(editorState.getCurrentContent()))}
 					name={this.getInputName(this.props.path)}
 					ref="customEditor"
 				/>
-
-
-
 			</div>
 		);
 	},

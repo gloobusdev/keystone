@@ -10,24 +10,15 @@ var utils = require('keystone-utils');
 function CT (list, path, options) {
 	this.options = options;
 	this._nativeType = Object;
-	this._properties = ['monospace'];
-	this._underscoreMethods = ['crop'];
+	this._properties = ['options'];
 	CT.super_.call(this, list, path, options);
 }
 CT.properName = 'CT';
 util.inherits(CT, FieldType);
 
 CT.prototype.validateInput = function (data, callback) {
-	var max = this.options.max;
-	var min = this.options.min;
 	var value = this.getValueFromData(data);
 	var result = value === undefined || value === null || typeof value === 'object';
-	if (max && typeof value === 'object') {
-		result = value.length < max;
-	}
-	if (min && typeof value === 'object') {
-		result = value.length > min;
-	}
 	utils.defer(callback, result);
 };
 
@@ -60,13 +51,6 @@ CT.prototype.addFilterToQuery = function (filter) {
 	value = new RegExp(value, filter.caseSensitive ? '' : 'i');
 	query[this.path] = filter.inverted ? { $not: value } : value;
 	return query;
-};
-
-/**
- * Crops the string to the specifed length.
- */
-CT.prototype.crop = function (item, length, append, preserveWords) {
-	return utils.cropString(item.get(this.path), length, append, preserveWords);
 };
 
 /* Export Field Type */
