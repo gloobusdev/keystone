@@ -18,7 +18,7 @@ util.inherits(CT, FieldType);
 
 CT.prototype.validateInput = function (data, callback) {
 	var value = this.getValueFromData(data);
-	var result = value === undefined || value === null || typeof value === 'object';
+	var result = value === undefined || value === null || typeof value === 'string';
 	utils.defer(callback, result);
 };
 
@@ -29,6 +29,24 @@ CT.prototype.validateRequiredInput = function (item, data, callback) {
 		result = true;
 	}
 	utils.defer(callback, result);
+};
+
+/**
+ * Validates that a value for this field has been provided in a data object
+ *
+ * Deprecated
+ */
+CT.prototype.inputIsValid = function (data, required, item) {
+	var value = this.getValueFromData(data);
+	if (required) {
+		if (value === undefined && item && item.get(this.path)) {
+			return true;
+		}
+		if (value === undefined || (typeof value !== 'string')) {
+			return false;
+		}
+	}
+	return (value === undefined || (typeof value === 'string'));
 };
 
 /**
