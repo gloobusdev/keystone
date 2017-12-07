@@ -15,6 +15,8 @@ import { EditorState, convertToRaw, ContentState } from 'draft-js';
 import draftToHtml from 'draftjs-to-html';
 import htmlToDraft from 'html-to-draftjs';
 
+import ListComposer from './ListComposer';
+
 function reduceValues (values) {
 	return values.map(i => i.value);
 }
@@ -28,7 +30,7 @@ module.exports = Field.create({
 		type: 'CT',
 	},
 	focusTargetRef: 'customEditor',
-
+//	mixins: [ListComposer],
 	getInitialState() {
 		const html = this.props.value && this.props.value.html || '<p>Hey this <strong>editor</strong> rocks 😀</p>';
 		const contentBlock = htmlToDraft(html);
@@ -46,9 +48,17 @@ module.exports = Field.create({
 			module = this.props.value.module;
 		}
 		let allRecipients = this.props && this.props.options && this.props.options.recipients || {values:[]};
-		allRecipients.values.unshift({value:'', label: 'Please select module'});
+		allRecipients.values.unshift({value:'', label: 'Please select recipient'});
 		let allModules = this.props && this.props.options && this.props.options.modules || {values:[]};
 		allModules.values.unshift({value:'', label: 'Please select module'});
+		let valueOfState = typeof this.props.values == 'object' && this.props.values.templateContent ?
+			this.props.values.templateContent : {};
+
+		try {
+			valueOfState = JSON.parse( valueOfState );
+		}catch(e) {
+			// do nothig, because wrong or deprecated record. We will save a fresh one when save.
+		}
 
 		return {
 			editorState,
@@ -58,9 +68,7 @@ module.exports = Field.create({
 			currentTabLang: (this.props.options && this.props.options.languages &&
 				this.props.options.languages.values && this.props.options.languages.values[0] &&
 				this.props.options.languages.values[0].value) || "",
-			value: !Array.isArray(this.props.value) && typeof this.props.value == 'object' ? this.props.value : {},
-			selectedModule: module || '',
-			selectedRecipient: '',
+			value: valueOfState,
 			allRecipients: allRecipients,
 			allModules: allModules,
 		};
@@ -163,112 +171,23 @@ module.exports = Field.create({
 		);
 	},
 
-	addRecipientItem() {
-		const recipient = this.state.selectedRecipient;
-		if (!recipient || !recipient.value || !recipient.label) {
-			return false;
-		}
-		let recipients = this.state.value && this.state.value.recipients || [];
-		const isAlreadyAdded = !!recipients && (recipients.length > 0) && recipients.filter(i => (i.value == recipient.value));
-		if (!isAlreadyAdded || !(isAlreadyAdded.length > 0)) {
-			recipients.push({
-				value: recipient.value,
-				label: recipient.label,
-			});
-		}
-		this.setState({
-			value: { ...this.state.value, ...{recipients: recipients}},
-		});
-		this.updateValue({ recipients });
-	},
-	selectRecipient(recipient) {
-		const { options } = this.props;
-		const { recipients } = options || {recipients: []};
-		const oneElemArray = !!recipients && recipients.values && recipients.values.length > 0 && recipients.values.filter(i => i.value == recipient);
-		this.setState({
-			selectedRecipient: oneElemArray && oneElemArray.length > 0 && oneElemArray[0] || null,
-		});
-		return true;
-	},
-	renderRecipientItem(recipient, key) {
-		let classNamesHolder = [
-			"octicon",
-			"octicon-pin",
-			styles.recipientPinIcon
-		];
-
-		if ( recipient && recipient.default ) {
-			classNamesHolder.push(styles.pinedIcon);
-		}
-
-		return (
-			<Flex row alignItems="center" className={cs(styles.recipientItem, styles.noselect)} key={"key"+key+"item"}>
-				<Flex column flex={1} key={"key1itemPiece"}>
-					<span className={styles.recipientPinIconHolder}>
-						<span className={cs(classNamesHolder)}/>
-					</span>
-				</Flex>
-				<Flex column flex={10} className={styles.recipientName} key={"key2itemPiece"}>
-					{recipient && recipient.label || "No name"}
-				</Flex>
-				{recipient && !recipient.default && <Flex column flex={1} key={"key3itemPiece"}>
-					<span className={styles.recipientXIconHolder}>
-						<span className={cs("octicon", "octicon-x", styles.recipientXIcon)}/>
-					</span>
-				</Flex> || null}
-			</Flex>
-		);
-	},
-
-	renderRecipientSelector() {
-		let { recipients } = this.state.value || {recipients: []};
-		// fake data for test
-		/* recipients = [
-			{value: 'willemotProduction', label: 'Willemot production'},
-			{value: 'willemotClaims', label: 'Willemot claims', default: true},
-			{value: 'thirdParties', label: 'Third parties'},
-		]; */
-		let allRecipients = this.state.allRecipients;
-		const selected = this.state.selectedRecipient;
-		return (
-			<Flex column flex={1} alignItems="stretch">
-				<Flex row flex={1} alignItems="start" className={cs(styles.collectorItemsHolder, styles.noselect)}>
-					{recipients && recipients.map((recipItem, recipKey)=>{
-						return this.renderRecipientItem(recipItem, recipKey);
-					})}
-				</Flex>
-
-				<Item row flex={1} alignItems="start">
-					<Item flex={6} column>
-						<FormSelect
-							onChange={this.selectRecipient}
-							options={allRecipients && allRecipients.values || []}
-							value={selected && selected.value}
-						/>
-					</Item>
-					<Item flex={1} column alignContent="end">
-						<Button ref="button"
-							onClick={this.addRecipientItem}
-							className={styles.addButton}>
-							<span className="octicon octicon-plus" />
-						</Button>
-					</Item>
-				</Item>
-			</Flex>
-		);
-	},
-
 	renderField() {
 		const { editorState, currentTabRecipient, currentTabLang } = this.state;
-		const { options } = this.props;
-		const { recipients } = this.props.value || {recipients: []};
+		// const { options } = this.props;
+		const { recipients } = this.state.value || {recipients: []};
 		return (
 			<div>
 				<Flex column flex={1} alignItems="stretch" key={"moduleSelectorKey"}>
 					{this.renderModuleSelector()}
 				</Flex>
 				<Flex column flex={1} alignItems="stretch" key={"recipientSelectorKey"}>
-					{this.renderRecipientSelector()}
+					<ListComposer
+						allValues={this.state.allRecipients}
+						allSelected={this.state.value.recipients}
+						onChange={(values)=>{ this.setState({
+							value: { ...this.state.value, ...{recipients: values}}
+						});}}
+					/>
 				</Flex>
 
 				<FormInput
