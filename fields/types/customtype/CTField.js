@@ -16,6 +16,7 @@ import draftToHtml from 'draftjs-to-html';
 import htmlToDraft from 'html-to-draftjs';
 
 import ListComposer from './ListComposer';
+import TabRow from './TabRow';
 
 function reduceValues (values) {
 	return values.map(i => i.value);
@@ -49,28 +50,40 @@ module.exports = Field.create({
 		}
 		let allRecipients = this.props && this.props.options && this.props.options.recipients || {values:[]};
 		allRecipients.values.unshift({value:'', label: 'Please select recipient'});
+
 		let allModules = this.props && this.props.options && this.props.options.modules || {values:[]};
 		allModules.values.unshift({value:'', label: 'Please select module'});
+
+		let allLanguages = this.props && this.props.options && this.props.options.languages || {values:[]};
+
+		let allVariables = this.props && this.props.options && this.props.options.variables || {values:[]};
+		allVariables.values.unshift({value: '', label: 'Please select variable'});
+
 		let valueOfState = typeof this.props.values == 'object' && this.props.values.templateContent ?
 			this.props.values.templateContent : {};
 
-		try {
-			valueOfState = JSON.parse( valueOfState );
-		}catch(e) {
+		try { valueOfState = JSON.parse( valueOfState ); } catch (e) {
 			// do nothig, because wrong or deprecated record. We will save a fresh one when save.
 		}
 
+		const currentTabRecipient = valueOfState && valueOfState.recipients &&
+			Array.isArray(valueOfState.recipients) && valueOfState.recipients.length > 0 &&
+			valueOfState.recipients[0] || {value: ''};
+
+		const currentTabLang = allLanguages && allLanguages.values &&
+			Array.isArray(allLanguages.values) && allLanguages.values.length > 0 &&
+			allLanguages.values[0] || {value: ''};
+
+
 		return {
 			editorState,
-			currentTabRecipient: (this.props.value && this.props.value.recipients &&
-				this.props.value.recipients.values && this.props.value.recipients.values[0] &&
-				this.props.value.recipients.values[0].value) || "",
-			currentTabLang: (this.props.options && this.props.options.languages &&
-				this.props.options.languages.values && this.props.options.languages.values[0] &&
-				this.props.options.languages.values[0].value) || "",
+			currentTabRecipient: currentTabRecipient,
+			currentTabLang: currentTabLang,
 			value: valueOfState,
 			allRecipients: allRecipients,
 			allModules: allModules,
+			allLanguages: allLanguages,
+			allVariables: allVariables,
 		};
 	},
 
@@ -107,12 +120,13 @@ module.exports = Field.create({
 
 	onTabRecipeintSet(tabName) {
 		this.setState({
-			currentTabRecipient: tabName
+			currentTabRecipient: {value: tabName}
 		});
 	},
+
 	onTabLangSet(tabName) {
 		this.setState({
-			currentTabLang: tabName
+			currentTabLang: {value: tabName}
 		});
 	},
 
@@ -170,7 +184,20 @@ module.exports = Field.create({
 			/>
 		);
 	},
-
+	renderVariableSelector() {
+		return(
+			<Flex column flex={1} alignItems="stretch" key={"recipientSelectorKey"}>
+				<span className={styles.fieldLabel}>{"Variable list for this recipient"}</span>
+				<ListComposer
+					allValues={this.state.allVariables}
+					allSelected={this.state.value.variables}
+					onChange={(values)=>{ this.setState({
+						value: { ...this.state.value, ...{variables: values}}
+					});}}
+				/>
+			</Flex>
+		);
+	},
 	renderField() {
 		const { editorState, currentTabRecipient, currentTabLang } = this.state;
 		// const { options } = this.props;
@@ -187,6 +214,9 @@ module.exports = Field.create({
 						onChange={(values)=>{ this.setState({
 							value: { ...this.state.value, ...{recipients: values}}
 						});}}
+						options={{
+							handleDefault: true
+						}}
 					/>
 				</Flex>
 
@@ -195,68 +225,64 @@ module.exports = Field.create({
 					ref="focusTarget"
 					value={JSON.stringify(this.state.value)}
 					onChange={()=>{}}
-					type="textarea"
+					type="hidden"
 				/>
 
-				<Flex column flex={1} alignItems="stretch">
-					<Item row alignItems="stretch" flex={1} key={"primaryTabs"}>
-						{recipients && recipients.map((tab, index) => {
-							return (
-								<Flex column alignItems="start" key={"primaryTabNumber"+index}
-									className={cs(styles.tab, styles.noselect, (tab.value === currentTabRecipient) ? styles.active : null)}
-									onClick={(ev)=>{this.onTabRecipeintSet(tab.value)}}
-								>
-									{tab.label}
-								</Flex>
-							);
-						})}
-					</Item>
-					<Item row alignItems="stretch" flex={1} key={"primaryTabContents"}>
-						{recipients && recipients.filter((tab, index) => (tab.name === currentTabRecipient))
-							.map((tab, index) => {
-								return (
-									<Flex column alignItems="start" flex={1} key={"primaryTabContentNumber"+index}
-										className={cs(styles.tabContent)}
-									>
-										{this.renderSecondLevelTabs()}
-									</Flex>
-								);
-							})
-					}
-					</Item>
-				</Flex>
 
-				<div style={Object.assign({}, this.props.globalStyle, {
-					border: "1px solid gray",
-					backgroundColor: "white",
-				})}>
-					<Editor
-						editorState={editorState}
-						toolbarClassName="toolbarClassName"
-						wrapperClassName="demo-wrapper"
-						editorClassName="demo-editor"
-						onEditorStateChange={this.onEditorStateChange}
-						toolbar={{
-							inline: { inDropdown: true },
-							list: { inDropdown: true },
-							textAlign: { inDropdown: true },
-							link: { inDropdown: true },
-							history: { inDropdown: true },
-						}}
+				<TabRow
+					key={"keyOneTabRow"}
+					onChange={this.onTabRecipeintSet}
+					tabs={this.state.value && this.state.value.recipients || []}
+					selected={this.state.currentTabRecipient}
+				/>
+				{this.state.value && this.state.value.recipients && this.state.value.recipients.length > 0 &&
+				<Flex column flex={1} alignItems="stretch" className={styles.tabContent}>
 
-						// name={this.getInputName(this.props.path)}
+					{this.renderVariableSelector()}
+
+					<TabRow
+						key={"keyTwoTabRow"}
+						onChange={this.onTabLangSet}
+						tabs={this.state.allLanguages && this.state.allLanguages.values || []}
+						selected={this.state.currentTabLang}
 					/>
-				</div>
-				<textarea
-					disabled
-					style={Object.assign({}, this.props.globalStyle, {
-						border: "1px solid gray",
-						width: "100%",
-					})}
-					value={draftToHtml(convertToRaw(editorState.getCurrentContent()))}
-					name={this.getInputName(this.props.path)}
-					ref="customEditor"
-				/>
+					<Flex column flex={1} alignItems="stretch" className={styles.tabContent}>
+
+						<div style={Object.assign({}, this.props.globalStyle, {
+							border: "1px solid gray",
+							backgroundColor: "white",
+						})}>
+							<Editor
+								editorState={editorState}
+								toolbarClassName="toolbarClassName"
+								wrapperClassName="demo-wrapper"
+								editorClassName="demo-editor"
+								onEditorStateChange={this.onEditorStateChange}
+								toolbar={{
+									inline: { inDropdown: true },
+									list: { inDropdown: true },
+									textAlign: { inDropdown: true },
+									link: { inDropdown: true },
+									history: { inDropdown: true },
+								}}
+
+								// name={this.getInputName(this.props.path)}
+							/>
+						</div>
+						<textarea
+							disabled
+							style={Object.assign({}, this.props.globalStyle, {
+								border: "1px solid gray",
+								width: "100%",
+							})}
+							value={draftToHtml(convertToRaw(editorState.getCurrentContent()))}
+							name={this.getInputName(this.props.path)}
+							ref="customEditor"
+						/>
+
+					</Flex>
+				</Flex>
+				}
 			</div>
 		);
 	},
