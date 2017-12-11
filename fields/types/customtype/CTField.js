@@ -18,9 +18,19 @@ import htmlToDraft from 'html-to-draftjs';
 import ListComposer from './ListComposer';
 import TabRow from './TabRow';
 
-function reduceValues (values) {
-	return values.map(i => i.value);
-}
+/**
+ * This function will insert a value to the begining of the array if not exist with the same value
+ * (there are no return value because the array is given by address).
+ * @param {Object} intoThisArray - this is an object contains the array on "values" property. That array
+ * are elements type object like this: {value:<String>, label:<String>}
+ * @param {Object} newValue
+ */
+const unshifValueIfNotExist = (intoThisArray, newValue) => {
+	if( intoThisArray.values.filter(i=>(i.value === '')).length < 1 ) {
+		intoThisArray.values.unshift({value:'', label: 'Please select recipient'});
+	}
+};
+
 
 module.exports = Field.create({
 	displayName: 'Custom Type',
@@ -49,15 +59,15 @@ module.exports = Field.create({
 			module = this.props.value.module;
 		}
 		let allRecipients = this.props && this.props.options && this.props.options.recipients || {values:[]};
-		allRecipients.values.unshift({value:'', label: 'Please select recipient'});
+		unshifValueIfNotExist(allRecipients, {value:'', label: 'Please select recipient'});
 
 		let allModules = this.props && this.props.options && this.props.options.modules || {values:[]};
-		allModules.values.unshift({value:'', label: 'Please select module'});
+		unshifValueIfNotExist(allModules, {value:'', label: 'Please select module'});
 
 		let allLanguages = this.props && this.props.options && this.props.options.languages || {values:[]};
 
 		let allVariables = this.props && this.props.options && this.props.options.variables || {values:[]};
-		allVariables.values.unshift({value: '', label: 'Please select variable'});
+		unshifValueIfNotExist(allVariables, {value:'', label: 'Please select variable'});
 
 		let valueOfState = typeof this.props.values == 'object' && this.props.values.templateContent ?
 			this.props.values.templateContent : {};
@@ -103,6 +113,11 @@ module.exports = Field.create({
 				...{modules: this.props.options.modules + [{value:'', label: 'AAAAAAAAAAAa'}]}
 			}} */
 		};
+	},
+	onTabRemainsSetThatActive() {
+		if (this.state.value && this.state.value.recipients && this.state.value.recipients.length === 1) {
+			this.onTabRecipeintSet(this.state.value.recipients[0].value);
+		}
 	},
 
 	onEditorStateChange(editorState) {
@@ -184,6 +199,13 @@ module.exports = Field.create({
 			/>
 		);
 	},
+	onChangeRecipients(values) {
+		this.setState({
+			value: { ...this.state.value, ...{recipients: values}}
+		}, () => {
+			this.onTabRemainsSetThatActive();
+		});
+	},
 	renderVariableSelector() {
 		return(
 			<Flex column flex={1} alignItems="stretch" key={"recipientSelectorKey"}>
@@ -211,9 +233,7 @@ module.exports = Field.create({
 					<ListComposer
 						allValues={this.state.allRecipients}
 						allSelected={this.state.value.recipients}
-						onChange={(values)=>{ this.setState({
-							value: { ...this.state.value, ...{recipients: values}}
-						});}}
+						onChange={this.onChangeRecipients}
 						options={{
 							handleDefault: true
 						}}
@@ -227,7 +247,6 @@ module.exports = Field.create({
 					onChange={()=>{}}
 					type="hidden"
 				/>
-
 
 				<TabRow
 					key={"keyOneTabRow"}
@@ -258,13 +277,48 @@ module.exports = Field.create({
 								wrapperClassName="demo-wrapper"
 								editorClassName="demo-editor"
 								onEditorStateChange={this.onEditorStateChange}
+								mention={{
+									separator: ' ',
+									trigger: '@',
+									suggestions: [
+									  { text: 'APPLE', value: 'apple', url: 'apple' },
+									  { text: 'BANANA', value: 'banana', url: 'banana' },
+									  { text: 'CHERRY', value: 'cherry', url: 'cherry' },
+									  { text: 'DURIAN', value: 'durian', url: 'durian' },
+									  { text: 'EGGFRUIT', value: 'eggfruit', url: 'eggfruit' },
+									  { text: 'FIG', value: 'fig', url: 'fig' },
+									  { text: 'GRAPEFRUIT', value: 'grapefruit', url: 'grapefruit' },
+									  { text: 'HONEYDEW', value: 'honeydew', url: 'honeydew' },
+									],
+								  }}
+								options={['mybutton']}
 								toolbar={{
 									inline: { inDropdown: true },
 									list: { inDropdown: true },
 									textAlign: { inDropdown: true },
 									link: { inDropdown: true },
-									history: { inDropdown: true },
+
 								}}
+								toolbar={{
+									options: ['inline', 'blockType', 'fontSize', 'fontFamily'],
+									inline: {
+									  options: ['bold', 'italic', 'underline', 'strikethrough', 'monospace'],
+									  bold: { className: 'bordered-option-classname' },
+									  italic: { className: 'bordered-option-classname' },
+									  underline: { className: 'bordered-option-classname' },
+									  strikethrough: { className: 'bordered-option-classname' },
+									  code: { className: 'bordered-option-classname' },
+									},
+									blockType: {
+									  className: 'bordered-option-classname',
+									},
+									fontSize: {
+									  className: 'bordered-option-classname',
+									},
+									fontFamily: {
+									  className: 'bordered-option-classname',
+									},
+								  }}
 
 								// name={this.getInputName(this.props.path)}
 							/>
