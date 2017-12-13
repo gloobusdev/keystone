@@ -11,9 +11,8 @@ import { Flex, Item } from 'react-flex';
 import 'react-flex/index.css';
 import cs from 'classnames';
 
-import { EditorState, convertToRaw, ContentState } from 'draft-js';
-import draftToHtml from 'draftjs-to-html';
-import htmlToDraft from 'html-to-draftjs';
+import TinyMce from 'react-tinymce';
+import $script from 'scriptjs';
 
 import ListComposer from './ListComposer';
 import TabRow from './TabRow';
@@ -31,6 +30,8 @@ const unshifValueIfNotExist = (intoThisArray, newValue) => {
 	}
 };
 
+let editorLoaded = !!global.tinymce;
+let theSubjectEditor, theBodyEditor;
 
 module.exports = Field.create({
 	displayName: 'Custom Type',
@@ -40,20 +41,27 @@ module.exports = Field.create({
 	statics: {
 		type: 'CT',
 	},
-	focusTargetRef: 'customEditor',
-//	mixins: [ListComposer],
-	getInitialState() {
-		const html = this.props.value && this.props.value.html || '<p>Hey this <strong>editor</strong> rocks 😀</p>';
-		const contentBlock = htmlToDraft(html);
-		let editorState = EditorState.createEmpty();
-		if (contentBlock) {
-			const contentState = ContentState.createFromBlockArray(contentBlock.contentBlocks);
-			editorState = EditorState.createWithContent(contentState);
-			this.state = {
-				editorState,
-			};
-		}
 
+
+	// focusTargetRef: 'customEditor', // TODO set focused the first input. Give a ref for it
+
+	loadEditor () {
+		$script(`${Keystone.adminPath}/lib/tinymce/tinymce.min.js`, () => {
+			this.setState({ editorLoaded: true });
+		});
+	},
+	componentDidMount () {
+		if (!this.state.editorLoaded) {
+			this.loadEditor();
+		}
+	},
+
+	//	mixins: [ListComposer],
+
+	/**
+	 * When start the module we configure the initial state for everithing.
+	 */
+	getInitialState() {
 		let module = '';
 		if ( !Array.isArray(this.props.value) && typeof this.props.value == 'object' ) {
 			module = this.props.value.module;
@@ -70,10 +78,11 @@ module.exports = Field.create({
 		unshifValueIfNotExist(allVariables, {value:'', label: 'Please select variable'});
 
 		let valueOfState = typeof this.props.values == 'object' && this.props.values.templateContent ?
-			this.props.values.templateContent : {};
+			this.props.values.templateContent : '{}';
 
-		try { valueOfState = JSON.parse( valueOfState ); } catch (e) {
-			// do nothig, because wrong or deprecated record. We will save a fresh one when save.
+		try { valueOfState = JSON.parse( valueOfState ); }
+		catch (e) {
+			valueOfState = {}; // do nothig, because wrong or deprecated record. We will save a fresh one when save.
 		}
 
 		const currentTabRecipient = valueOfState && valueOfState.recipients &&
@@ -84,9 +93,7 @@ module.exports = Field.create({
 			Array.isArray(allLanguages.values) && allLanguages.values.length > 0 &&
 			allLanguages.values[0] || {value: ''};
 
-
 		return {
-			editorState,
 			currentTabRecipient: currentTabRecipient,
 			currentTabLang: currentTabLang,
 			value: valueOfState,
@@ -94,6 +101,7 @@ module.exports = Field.create({
 			allModules: allModules,
 			allLanguages: allLanguages,
 			allVariables: allVariables,
+			editorLoaded,
 		};
 	},
 
@@ -114,79 +122,102 @@ module.exports = Field.create({
 			}} */
 		};
 	},
+
+	/**
+	 * Find a tab to set active. Not done actually.
+	 * TODO Please solve if we have no active tab set the last active.
+	 */
 	onTabRemainsSetThatActive() {
 		if (this.state.value && this.state.value.recipients && this.state.value.recipients.length === 1) {
 			this.onTabRecipeintSet(this.state.value.recipients[0].value);
 		}
 	},
 
-	onEditorStateChange(editorState) {
-		// Editor state save
+	/**
+	 * Save the email contents to the correct "coordinates" of recipients and languages
+	 * @param {object} e - the event object of the editors onchange
+	 */
+	onEditorStateChange({e, nameOfTarget}) {
+		// preparing initial values from state to save the editors value
+		const content = this.state.value.content || {};
+		const {currentTabRecipient, currentTabLang} = this.state;
+
+		// finding indexes to save the editors contents, on each language and recipent intersects
+		const recipientIndex = currentTabRecipient && currentTabRecipient.value || false;
+		const languageIndex = currentTabLang && currentTabLang.value || false;
+		const targetWhiteList = ['body', 'subject'];
+
+		// we have no valid conditions tyo save the editors value!!!
+		if( !currentTabRecipient || !currentTabLang || !nameOfTarget ||
+			targetWhiteList.indexOf(nameOfTarget) === -1 ) {
+			return false;
+		}
+
+		// make sure if exists and is an object
+		content[recipientIndex] = content[recipientIndex] ? content[recipientIndex] : {};
+		content[recipientIndex][languageIndex] = content[recipientIndex][languageIndex] ? content[recipientIndex][languageIndex] : {};
+		content[recipientIndex][languageIndex][nameOfTarget] = e.target.getContent();
+
+		// update value in the current state of component.
 		this.setState({
-			editorState,
+			value: {
+				...this.state.value,
+				...{content: content}
+			}
 		});
 
-		// support value for keystone
+		// update value in the props for store in the store. Support value for keystone.
 		this.props.onChange({
 			path: this.props.path,
-			value: {html: editorState.getCurrentContent()},
+			value: {
+				...this.state.value,
+				...{content: content}
+			}
 		});
 	},
 
+	/**
+	 * Event handling for recipient tab change. Convert sting value to an object and save it in the state.
+	 * @param {*} tabName
+	 */
 	onTabRecipeintSet(tabName) {
 		this.setState({
 			currentTabRecipient: {value: tabName}
 		});
 	},
 
+	/**
+	 * Event handling for lang tab change. Convert sting value to an object and save it in the state.
+	 * @param {*} tabName
+	 */
 	onTabLangSet(tabName) {
 		this.setState({
 			currentTabLang: {value: tabName}
 		});
 	},
 
-	renderSecondLevelTabs() {
-		const { currentTabLang } = this.state;
-		const { languages } = this.props.options;
-		return (
-			<Flex column flex={1} alignItems="stretch">
-				<Item row alignItems="stretch" flex={1} key={"primaryTabs"}>
-					{languages && languages.values && languages.map((tab, index) => {
-						return (
-							<Flex column alignItems="start" key={"primaryTabNumber"+index}
-								className={cs(styles.tab, styles.noselect, (tab.name === currentTabLang) ? styles.active : null)}
-								onClick={(ev)=>{this.onTabLangSet(tab.name)}}
-							>
-								{tab.label}
-							</Flex>
-						);
-					})}
-				</Item>
-				<Item row alignItems="stretch" flex={1} key={"primaryTabContents"}>
-					{languages && languages.filter((tab, index) => (tab.name === currentTabLang))
-						.map((tab, index) => {
-							return (
-								<Flex column alignItems="start" flex={1} key={"primaryTabContentNumber"+index}
-									className={cs(styles.tabContent)}
-								>
-									{tab.name + " === " + currentTabLangs + " -> " }
-								</Flex>
-							);
-						}
-					)
-				}
-				</Item>
-			</Flex>);
-	},
+	/**
+	 * Update in props a changed value to provide it for keystone.
+	 * @param {object} changedProp
+	 */
 	updateValue (changedProp) {
 		this.props.onChange({ ...this.props.value, ...changedProp });
 	},
+
+	/**
+	 * Update module selector value in state and trigger update also for the props.
+	 * @param {*} module
+	 */
 	selectModule(module) {
 		this.setState({
 			value: { ...this.state.value, ...{module: module}},
 		});
 		this.updateValue({ module });
 	},
+
+	/**
+	 * Rendering module selector
+	 */
 	renderModuleSelector() {
 		const modules = this.state.allModules;
 		const { module } = this.state.value || {module: ''};
@@ -199,6 +230,10 @@ module.exports = Field.create({
 			/>
 		);
 	},
+
+	/**
+	 * Update recipient list in the state and find another active tab if the removed one was the active.
+	 */
 	onChangeRecipients(values) {
 		this.setState({
 			value: { ...this.state.value, ...{recipients: values}}
@@ -206,24 +241,152 @@ module.exports = Field.create({
 			this.onTabRemainsSetThatActive();
 		});
 	},
+
+	/**
+	 * Render the part of variable selector
+	 */
 	renderVariableSelector() {
+		// TODO filter the variables by module whitelist what is contained in allVariables elements.
+		// Come from the schema options variable modulewhitelist
 		return(
 			<Flex column flex={1} alignItems="stretch" key={"recipientSelectorKey"}>
 				<span className={styles.fieldLabel}>{"Variable list for this recipient"}</span>
 				<ListComposer
 					allValues={this.state.allVariables}
 					allSelected={this.state.value.variables}
-					onChange={(values)=>{ this.setState({
-						value: { ...this.state.value, ...{variables: values}}
-					});}}
+					onChange={(values)=>{
+						this.setState({
+							value: { ...this.state.value, ...{variables: values}}
+						});
+					}}
 				/>
 			</Flex>
 		);
 	},
+
+	/**
+	 * This function will render a row of buttons to use for filling an editor.
+	 */
+	renderButtonRowForFillContent(editor) {
+
+		if(!editor) { return; } // no editor no variable insertion
+
+		const pieces = !!this.state.value.variables &&
+			Array.isArray(this.state.value.variables) &&
+			this.state.value.variables.length > 0 &&
+			this.state.value.variables || [];
+
+		return (
+			<Flex column flex={1} alignItems="stretch">
+				<Flex row alignItems="stretch" flex={1} key={"buttonRow"}>
+				{pieces && pieces.map((piece, index) => (
+					<Flex column alignItems="start" key={"buttonRowElem"+index}
+						className={cs(styles.variableValueInserter, styles.noselect)}
+						onClick={(ev)=>{editor.insertContent('{{'+piece.value+'}}')}}
+					>
+						<Flex row>
+							<Flex column>
+								{piece.label}
+							</Flex>
+							<Flex column>
+								<span className={cs("octicon", "octicon-tag", styles.downArrowIcon)}/>
+							</Flex>
+						</Flex>
+					</Flex>
+				))}
+				</Flex>
+			</Flex>
+		);
+	},
+
+	/**
+	 * Gettin value from state to the current combination if the recipient, language and template part.
+	 * @param {*} param0
+	 */
+	fetchSafeEditorValue({nameOfTarget}) {
+		const content = this.state.value.content || {};
+		const { currentTabRecipient, currentTabLang } = this.state;
+		const curRecValue = currentTabRecipient.value || false;
+		const curLangValue = currentTabLang.value || false;
+		let editorState = '';
+
+		const targetWhiteList = ['body', 'subject'];
+
+		// we have no valid conditions tyo save the editors value!!!
+		if( !curRecValue || !curLangValue || !nameOfTarget ||
+			targetWhiteList.indexOf(nameOfTarget) === -1 ) {
+			return editorState;
+		}
+
+		content[curRecValue] = !!content[curRecValue] ? content[curRecValue] : {};
+		content[curRecValue][curLangValue] = !!content[curRecValue][curLangValue] ? content[curRecValue][curLangValue] : {
+			subject: '', body: ''
+		};
+		editorState = content[curRecValue][curLangValue][nameOfTarget] || '';
+
+		return editorState;
+	},
+
+	/**
+	 * Rendering the subject editor of template
+	 */
+	renderSubjectEditor() {
+		const editorState = this.fetchSafeEditorValue({nameOfTarget: 'subject'});
+
+		return (
+			<div>
+				<span className={styles.fieldLabel}>{"Edit subject of the email template."}</span>
+				{this.renderButtonRowForFillContent(theSubjectEditor)}
+				<TinyMce
+					ref="customEditor"
+					onChange={(e) => this.onEditorStateChange({e, nameOfTarget: "subject"})}
+					config={{
+						menubar: false,
+						toolbar: 'undo redo',
+						setup: (editor) => {
+							theSubjectEditor = !theSubjectEditor ? editor : theSubjectEditor;
+						}
+					}}
+					content={editorState}
+				/>
+			</div>
+		);
+	},
+
+	/**
+	 * Rendering the emailbody editor of template
+	 */
+	renderBodyEditor() {
+		const editorState = this.fetchSafeEditorValue({nameOfTarget: 'body'});
+
+		return (
+			<div>
+				<span className={styles.fieldLabel}>{"Edit body of the email template."}</span>
+				{this.renderButtonRowForFillContent(theBodyEditor)}
+				<TinyMce
+					ref="customEditor2"
+					onChange={(e) => this.onEditorStateChange({e, nameOfTarget: "body"})}
+					config={{
+						menubar: false,
+						toolbar: 'undo redo | bold italic underline strikethrough | alignleft aligncenter alignright | styleselect',
+						setup: (editor) => {
+							theBodyEditor = !theBodyEditor ? editor : theBodyEditor;
+						}
+					}}
+					content={editorState}
+				/>
+			</div>
+		)
+	},
+
+	/**
+	 * Master renderer of the field.
+	 */
 	renderField() {
-		const { editorState, currentTabRecipient, currentTabLang } = this.state;
-		// const { options } = this.props;
+		const { currentTabRecipient, currentTabLang } = this.state;
+		const { editorLoaded } = this.state;
 		const { recipients } = this.state.value || {recipients: []};
+
 		return (
 			<div>
 				<Flex column flex={1} alignItems="stretch" key={"moduleSelectorKey"}>
@@ -267,72 +430,8 @@ module.exports = Field.create({
 					/>
 					<Flex column flex={1} alignItems="stretch" className={styles.tabContent}>
 
-						<div style={Object.assign({}, this.props.globalStyle, {
-							border: "1px solid gray",
-							backgroundColor: "white",
-						})}>
-							<Editor
-								editorState={editorState}
-								toolbarClassName="toolbarClassName"
-								wrapperClassName="demo-wrapper"
-								editorClassName="demo-editor"
-								onEditorStateChange={this.onEditorStateChange}
-								mention={{
-									separator: ' ',
-									trigger: '@',
-									suggestions: [
-									  { text: 'APPLE', value: 'apple', url: 'apple' },
-									  { text: 'BANANA', value: 'banana', url: 'banana' },
-									  { text: 'CHERRY', value: 'cherry', url: 'cherry' },
-									  { text: 'DURIAN', value: 'durian', url: 'durian' },
-									  { text: 'EGGFRUIT', value: 'eggfruit', url: 'eggfruit' },
-									  { text: 'FIG', value: 'fig', url: 'fig' },
-									  { text: 'GRAPEFRUIT', value: 'grapefruit', url: 'grapefruit' },
-									  { text: 'HONEYDEW', value: 'honeydew', url: 'honeydew' },
-									],
-								  }}
-								options={['mybutton']}
-								toolbar={{
-									inline: { inDropdown: true },
-									list: { inDropdown: true },
-									textAlign: { inDropdown: true },
-									link: { inDropdown: true },
-
-								}}
-								toolbar={{
-									options: ['inline', 'blockType', 'fontSize', 'fontFamily'],
-									inline: {
-									  options: ['bold', 'italic', 'underline', 'strikethrough', 'monospace'],
-									  bold: { className: 'bordered-option-classname' },
-									  italic: { className: 'bordered-option-classname' },
-									  underline: { className: 'bordered-option-classname' },
-									  strikethrough: { className: 'bordered-option-classname' },
-									  code: { className: 'bordered-option-classname' },
-									},
-									blockType: {
-									  className: 'bordered-option-classname',
-									},
-									fontSize: {
-									  className: 'bordered-option-classname',
-									},
-									fontFamily: {
-									  className: 'bordered-option-classname',
-									},
-								  }}
-
-								// name={this.getInputName(this.props.path)}
-							/>
-						</div>
-						<textarea
-							disabled
-							style={Object.assign({}, this.props.globalStyle, {
-								border: "1px solid gray",
-								width: "100%",
-							})}
-							value={draftToHtml(convertToRaw(editorState.getCurrentContent()))}
-							name={this.getInputName(this.props.path)}
-							ref="customEditor"
-						/>
+						{editorLoaded && this.renderSubjectEditor()}
+						{editorLoaded && this.renderBodyEditor()}
 
 					</Flex>
 				</Flex>
@@ -340,6 +439,11 @@ module.exports = Field.create({
 			</div>
 		);
 	},
+
+	/**
+	 * This is the render value methode used somwhere, this is not ready. I have no idea wheere to use and how.
+	 * TODO implement it, find functionality!
+	 */
 	renderValue () {
 		return this.props.value ? (
 			<FormInput noedit href={'mailto:' + this.props.value}>{this.props.value}</FormInput>
