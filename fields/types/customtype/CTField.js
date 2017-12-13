@@ -177,12 +177,24 @@ module.exports = Field.create({
 	},
 
 	/**
+	 * Update the full content of the wysiwyg editor.
+	 */
+	updateValuesInEditorOnChangeSomething() {
+		const subject = this.fetchSafeEditorValue({nameOfTarget: 'subject'});
+		this.setContentToSubject(subject);
+		const body = this.fetchSafeEditorValue({nameOfTarget: 'body'});
+		this.setContentToBody(body);
+	},
+
+	/**
 	 * Event handling for recipient tab change. Convert sting value to an object and save it in the state.
 	 * @param {*} tabName
 	 */
 	onTabRecipeintSet(tabName) {
 		this.setState({
 			currentTabRecipient: {value: tabName}
+		}, () => {
+			this.updateValuesInEditorOnChangeSomething();
 		});
 	},
 
@@ -193,6 +205,8 @@ module.exports = Field.create({
 	onTabLangSet(tabName) {
 		this.setState({
 			currentTabLang: {value: tabName}
+		}, () => {
+			this.updateValuesInEditorOnChangeSomething();
 		});
 	},
 
@@ -265,24 +279,59 @@ module.exports = Field.create({
 	},
 
 	/**
+	 * Separate function for insert contetnt to editor by clicking. This was made because on the timeline
+	 * of element creation the editor reference created after the variable buttons, and the attached clickhandler.
+	 * But this function is given by referenc to onclick handler, and this make possible to call this when ewe have
+	 * value in the editor reference variable.
+	 * @param {*} ev
+	 * @param {*} value
+	 */
+	insertContentToSubject(ev, value) {
+		theSubjectEditor && theSubjectEditor.insertContent('{{'+value+'}}');
+	},
+
+	/**
+	 * Separate function for insert contetnt to editor by clicking.
+	 * @param {*} ev
+	 * @param {*} value
+	 */
+	insertContentToBody(ev, value) {
+		theBodyEditor && theBodyEditor.insertContent('{{'+value+'}}');
+	},
+
+	/**
+	 * Separate function for set contetnt to editor by clicking.
+	 * @param {*} ev
+	 * @param {*} value
+	 */
+	setContentToSubject(value) {
+		theSubjectEditor && theSubjectEditor.setContent(value);
+	},
+
+	/**
+	 * Separate function for set contetnt to editor by clicking.
+	 * @param {*} ev
+	 * @param {*} value
+	 */
+	setContentToBody(value) {
+		theBodyEditor && theBodyEditor.setContent(value);
+	},
+
+	/**
 	 * This function will render a row of buttons to use for filling an editor.
 	 */
-	renderButtonRowForFillContent(editor) {
-
-		if(!editor) { return; } // no editor no variable insertion
-
+	renderButtonRowForFillContent(functionForClick) {
 		const pieces = !!this.state.value.variables &&
 			Array.isArray(this.state.value.variables) &&
 			this.state.value.variables.length > 0 &&
 			this.state.value.variables || [];
-
 		return (
 			<Flex column flex={1} alignItems="stretch">
 				<Flex row alignItems="stretch" flex={1} key={"buttonRow"}>
 				{pieces && pieces.map((piece, index) => (
 					<Flex column alignItems="start" key={"buttonRowElem"+index}
 						className={cs(styles.variableValueInserter, styles.noselect)}
-						onClick={(ev)=>{editor.insertContent('{{'+piece.value+'}}')}}
+						onClick={(ev) => functionForClick(ev, piece.value)}
 					>
 						<Flex row>
 							<Flex column>
@@ -336,7 +385,9 @@ module.exports = Field.create({
 		return (
 			<div>
 				<span className={styles.fieldLabel}>{"Edit subject of the email template."}</span>
-				{this.renderButtonRowForFillContent(theSubjectEditor)}
+
+				{this.renderButtonRowForFillContent(this.insertContentToSubject)}
+
 				<TinyMce
 					ref="customEditor"
 					onChange={(e) => this.onEditorStateChange({e, nameOfTarget: "subject"})}
@@ -362,7 +413,7 @@ module.exports = Field.create({
 		return (
 			<div>
 				<span className={styles.fieldLabel}>{"Edit body of the email template."}</span>
-				{this.renderButtonRowForFillContent(theBodyEditor)}
+				{this.renderButtonRowForFillContent(this.insertContentToBody)}
 				<TinyMce
 					ref="customEditor2"
 					onChange={(e) => this.onEditorStateChange({e, nameOfTarget: "body"})}
