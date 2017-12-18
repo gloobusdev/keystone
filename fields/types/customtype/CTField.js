@@ -25,8 +25,9 @@ import TabRow from './TabRow';
  * @param {Object} newValue
  */
 const unshifValueIfNotExist = (intoThisArray, newValue) => {
-	if( intoThisArray.values.filter(i=>(i.value === '')).length < 1 ) {
-		intoThisArray.values.unshift({value:'', label: 'Please select recipient'});
+	if( intoThisArray && intoThisArray.values && Array.isArray(intoThisArray.values) &&
+		intoThisArray.values.filter(i=>(i.value === '')).length < 1 ) {
+		intoThisArray.values.unshift(newValue);
 	}
 };
 
@@ -42,7 +43,6 @@ module.exports = Field.create({
 		type: 'CT',
 	},
 
-
 	// focusTargetRef: 'customEditor', // TODO set focused the first input. Give a ref for it
 
 	loadEditor () {
@@ -55,6 +55,13 @@ module.exports = Field.create({
 			this.loadEditor();
 		}
 	},
+	/**
+	 * We have to reset the references because the editors will reinitialize on mount.
+	 */
+	componentWillUnmount () {
+		theSubjectEditor = null;
+		theBodyEditor = null;
+	},
 
 	//	mixins: [ListComposer],
 
@@ -62,10 +69,21 @@ module.exports = Field.create({
 	 * When start the module we configure the initial state for everithing.
 	 */
 	getInitialState() {
-		let module = '';
-		if ( !Array.isArray(this.props.value) && typeof this.props.value == 'object' ) {
-			module = this.props.value.module;
+
+
+		let valueOfState = typeof this.props.values == 'object' && this.props.values.templateContent ?
+		this.props.values.templateContent : '{}';
+
+		try { valueOfState = JSON.parse( valueOfState ); }
+		catch (e) {
+			valueOfState = {}; // do nothig, because wrong or deprecated record. We will save a fresh one when save.
 		}
+
+		let module = '';
+		if ( !Array.isArray(valueOfState) && typeof valueOfState == 'object' ) {
+			module = valueOfState.module || '';
+		}
+
 		let allRecipients = this.props && this.props.options && this.props.options.recipients || {values:[]};
 		unshifValueIfNotExist(allRecipients, {value:'', label: 'Please select recipient'});
 
@@ -74,16 +92,10 @@ module.exports = Field.create({
 
 		let allLanguages = this.props && this.props.options && this.props.options.languages || {values:[]};
 
-		let allVariables = this.props && this.props.options && this.props.options.variables || {values:[]};
-		unshifValueIfNotExist(allVariables, {value:'', label: 'Please select variable'});
-
-		let valueOfState = typeof this.props.values == 'object' && this.props.values.templateContent ?
-			this.props.values.templateContent : '{}';
-
-		try { valueOfState = JSON.parse( valueOfState ); }
-		catch (e) {
-			valueOfState = {}; // do nothig, because wrong or deprecated record. We will save a fresh one when save.
-		}
+		let moduleRelatedVariables = this.getVariablesListByModuleName(module || '');
+		let allVariables = this.props && this.props.options && this.props.options.variables &&
+			{...this.props.options.variables, ...moduleRelatedVariables}
+		|| {values:[]};
 
 		const currentTabRecipient = valueOfState && valueOfState.recipients &&
 			Array.isArray(valueOfState.recipients) && valueOfState.recipients.length > 0 &&
@@ -125,12 +137,52 @@ module.exports = Field.create({
 
 	/**
 	 * Find a tab to set active. Not done actually.
-	 * TODO Please solve if we have no active tab set the last active.
 	 */
 	onTabRemainsSetThatActive() {
-		if (this.state.value && this.state.value.recipients && this.state.value.recipients.length === 1) {
+		if (!this.state.value || !this.state.value.recipients || this.state.value.recipients.length < 1) {
+			this.onTabRecipeintSet(null);
+			return;
+		}
+
+		const {currentTabRecipient} = this.state;
+		let selectedFound = false;
+		this.state.value.recipients.forEach((oneRecipient)=>{
+			selectedFound = selectedFound || oneRecipient.value === currentTabRecipient.value;
+		});
+
+		if (!selectedFound) {
 			this.onTabRecipeintSet(this.state.value.recipients[0].value);
 		}
+	},
+
+	/**
+	 * Removed recipients related data have to be removed from memory.
+	 */
+	onTabClearDataOfDeletedTabs() {
+		// if no content then nothing to clear. Terminating this methode.
+		if (!this.state.value.content || Object.keys(this.state.value.content).length < 1) { return; }
+
+		const selectedRecips = this.state.value.recipients;
+		const allRecips = this.state.allRecipients && this.state.allRecipients.values || [];
+		// no recipients declared in schema, or the path of this values misspeld in schema.
+		if (!allRecips || !Array.isArray(allRecips) || allRecips.length < 1) { return; }
+
+		// erase all value from content if there are no selected recipients.
+		if (!selectedRecips || !Array.isArray(selectedRecips) || selectedRecips.length < 1) {
+			Object.keys(this.state.value.content).forEach((key) => { delete this.state.value.content[key]; });
+			return; // everithing is cleared. Nothing to do more.
+		}
+
+		let foundInSelected = false; // we need a flag for detecting the unused recipients.
+		allRecips.forEach((oneOfAll)=>{
+			foundInSelected = false; // reset flag to false
+			selectedRecips.forEach((oneOfSelected)=>{
+				foundInSelected = foundInSelected || oneOfSelected.value === oneOfAll.value;
+			});
+			if (!foundInSelected && oneOfAll.value !== '' && !!this.state.value.content[oneOfAll.value]) {
+				delete this.state.value.content[oneOfAll.value]; // unused recipient data ins tate, so remove that
+			}
+		});
 	},
 
 	/**
@@ -219,12 +271,45 @@ module.exports = Field.create({
 	},
 
 	/**
+	 * This function will refresh the used variable list for editors.
+	 * @param {string} moduleName - this is the module wath help us to filter the usable variables.
+	 */
+	getVariablesListByModuleName( moduleName ) {
+		let newVariables = {values:[]};
+		let allVariables = this.props && this.props.options && this.props.options.variables || {values:[]};
+
+		if( allVariables && allVariables.values && Array.isArray(allVariables.values) &&
+			allVariables.values.length > 0 ) {
+			newVariables.values = allVariables.values.filter((item) => {
+				return ( item.moduleWhiteList && Array.isArray(item.moduleWhiteList) && item.moduleWhiteList.length > 0 &&
+					item.moduleWhiteList.indexOf( moduleName ) !== -1 )
+				}
+			).map((item)=>{
+				return {
+					value: item.value,
+					label: item.label,
+					moduleWhiteList: item.moduleWhiteList || [],
+				}
+			});
+		}
+		unshifValueIfNotExist(newVariables, {value:'', label: 'Please select variable'});
+
+		// TODO remove variable also from selected variables.
+
+		return newVariables;
+	},
+
+	/**
 	 * Update module selector value in state and trigger update also for the props.
 	 * @param {*} module
 	 */
 	selectModule(module) {
 		this.setState({
 			value: { ...this.state.value, ...{module: module}},
+		},() => {
+			this.setState({
+				allVariables: this.getVariablesListByModuleName(module),
+			});
 		});
 		this.updateValue({ module });
 	},
@@ -253,6 +338,7 @@ module.exports = Field.create({
 			value: { ...this.state.value, ...{recipients: values}}
 		}, () => {
 			this.onTabRemainsSetThatActive();
+			this.onTabClearDataOfDeletedTabs();
 		});
 	},
 
@@ -260,12 +346,24 @@ module.exports = Field.create({
 	 * Render the part of variable selector
 	 */
 	renderVariableSelector() {
-		// TODO filter the variables by module whitelist what is contained in allVariables elements.
-		// Come from the schema options variable modulewhitelist
-		return(
+
+		const areVariabels = this.state.allVariables && this.state.allVariables.values &&
+			this.state.allVariables.values.length > 0 &&
+			this.state.allVariables.values.filter((elem)=>(elem.value !== '')).length > 0 || false;
+		return (
 			<Flex column flex={1} alignItems="stretch" key={"recipientSelectorKey"}>
-				<span className={styles.fieldLabel}>{"Variable list for this recipient"}</span>
-				<ListComposer
+				<Flex column alignItems="start">
+					<Flex row>
+						<span className={styles.fieldTitle}>{"Variables"}</span>
+					</Flex>
+					<Flex row>
+						{areVariabels ?
+							(<span className={styles.fieldLabel}>{"Please select variables for this template."}</span>) :
+							(<span className={styles.fieldLabel}>{"No variables slotted for this module."}</span>)
+						}
+					</Flex>
+				</Flex>
+				{areVariabels && <ListComposer
 					allValues={this.state.allVariables}
 					allSelected={this.state.value.variables}
 					onChange={(values)=>{
@@ -273,7 +371,7 @@ module.exports = Field.create({
 							value: { ...this.state.value, ...{variables: values}}
 						});
 					}}
-				/>
+				/>}
 			</Flex>
 		);
 	},
@@ -384,10 +482,16 @@ module.exports = Field.create({
 
 		return (
 			<div>
-				<span className={styles.fieldLabel}>{"Edit subject of the email template."}</span>
+				<Flex column alignItems="start">
+					<Flex row>
+						<span className={styles.fieldTitle}>{"Email subject"}</span>
+					</Flex>
+					<Flex row>
+						<span className={styles.fieldLabel}>{"Edit subject of the email template."}</span>
+					</Flex>
+				</Flex>
 
 				{this.renderButtonRowForFillContent(this.insertContentToSubject)}
-
 				<TinyMce
 					ref="customEditor"
 					onChange={(e) => this.onEditorStateChange({e, nameOfTarget: "subject"})}
@@ -412,7 +516,16 @@ module.exports = Field.create({
 
 		return (
 			<div>
-				<span className={styles.fieldLabel}>{"Edit body of the email template."}</span>
+
+				<Flex column alignItems="start">
+					<Flex row>
+						<span className={styles.fieldTitle}>{"Email body"}</span>
+					</Flex>
+					<Flex row>
+						<span className={styles.fieldLabel}>{"Edit body of the email template."}</span>
+					</Flex>
+				</Flex>
+
 				{this.renderButtonRowForFillContent(this.insertContentToBody)}
 				<TinyMce
 					ref="customEditor2"
@@ -431,17 +544,99 @@ module.exports = Field.create({
 	},
 
 	/**
+	 * This will render the indextype fields
+	 */
+	renderIndexType() {
+		return (
+			<div>
+				<Flex column alignItems="start">
+					<Flex row>
+						<span className={styles.fieldTitle}>{"Indextype"}</span>
+					</Flex>
+					<Flex row>
+						<span className={styles.fieldLabel}>{"Please insert the indextype values for this template."}</span>
+					</Flex>
+				</Flex>
+
+				<Flex column alignItems="start">
+					<Flex row style={{width:"100%"}}>
+						<Flex column flex={1} alignItems="start">
+							<span className={styles.fieldLabel}>{"Type"}</span>
+						</Flex>
+						<Flex column flex={3} alignItems="start">
+							<FormInput
+								value={this.state.value && this.state.value.indexType && this.state.value.indexType.type || ''}
+								onChange={(e)=>{
+									this.setState({
+										value: {...this.state.value,
+											...{indexType: {
+													type: e.target.value,
+													lowValue: this.state.value && this.state.value.indexType && this.state.value.indexType.lowValue || ''
+												}
+											}
+										}
+									});
+								}}
+							/>
+						</Flex>
+					</Flex>
+					<Flex row style={{width:"100%"}}>
+						<Flex column flex={1} alignItems="start">
+							<span className={styles.fieldLabel}>{"Low value"}</span>
+						</Flex>
+
+						<Flex column flex={3} alignItems="start">
+							<FormInput
+								value={this.state.value && this.state.value.indexType && this.state.value.indexType.lowValue || ''}
+								onChange={(e)=>{
+									this.setState({
+										value: {...this.state.value,
+											...{indexType: {
+													type:  this.state.value && this.state.value.indexType && this.state.value.indexType.type || '',
+													lowValue: e.target.value,
+												}
+											}
+										}
+									});
+								}}
+							/>
+						</Flex>
+
+					</Flex>
+				</Flex>
+			</div>
+		);
+	},
+
+	/**
 	 * Master renderer of the field.
 	 */
 	renderField() {
 		const { currentTabRecipient, currentTabLang } = this.state;
 		const { editorLoaded } = this.state;
 		const { recipients } = this.state.value || {recipients: []};
+		const areEditorsVisible = this.state.value && this.state.value.recipients && this.state.value.recipients.length > 0;
 
 		return (
 			<div>
+			<Flex column alignItems="start">
+				<Flex row>
+					<span className={styles.fieldTitle}>{"Module"}</span>
+				</Flex>
+				<Flex row>
+					<span className={styles.fieldLabel}>{"Please select a module for this template."}</span>
+				</Flex>
+			</Flex>
 				<Flex column flex={1} alignItems="stretch" key={"moduleSelectorKey"}>
 					{this.renderModuleSelector()}
+				</Flex>
+				<Flex column alignItems="start">
+					<Flex row>
+						<span className={styles.fieldTitle}>{"Recipients"}</span>
+					</Flex>
+					<Flex row>
+						<span className={styles.fieldLabel}>{"Please select recipients for this template."}</span>
+					</Flex>
 				</Flex>
 				<Flex column flex={1} alignItems="stretch" key={"recipientSelectorKey"}>
 					<ListComposer
@@ -462,31 +657,43 @@ module.exports = Field.create({
 					type="hidden"
 				/>
 
+				<Flex column alignItems="start">
+					<Flex row>
+						<span className={styles.fieldLabel}>{"You can navigate between recipients by using tabs below."}</span>
+					</Flex>
+				</Flex>
 				<TabRow
 					key={"keyOneTabRow"}
 					onChange={this.onTabRecipeintSet}
 					tabs={this.state.value && this.state.value.recipients || []}
 					selected={this.state.currentTabRecipient}
 				/>
-				{this.state.value && this.state.value.recipients && this.state.value.recipients.length > 0 &&
-				<Flex column flex={1} alignItems="stretch" className={styles.tabContent}>
+				<Flex column flex={1} alignItems="stretch"
+					className={cs(styles.tabContent, (!areEditorsVisible ? styles.visibleNone : null))}>
 
 					{this.renderVariableSelector()}
 
+					<Flex column alignItems="start">
+						<Flex row>
+							<span className={styles.fieldTitle}>{"Languages"}</span>
+						</Flex>
+						<Flex row>
+							<span className={styles.fieldLabel}>{"You can navigate between languages by using tabs below."}</span>
+						</Flex>
+					</Flex>
 					<TabRow
 						key={"keyTwoTabRow"}
 						onChange={this.onTabLangSet}
 						tabs={this.state.allLanguages && this.state.allLanguages.values || []}
 						selected={this.state.currentTabLang}
 					/>
-					<Flex column flex={1} alignItems="stretch" className={styles.tabContent}>
 
+					<Flex column flex={1} alignItems="stretch" className={styles.tabContent}>
 						{editorLoaded && this.renderSubjectEditor()}
 						{editorLoaded && this.renderBodyEditor()}
-
+						{this.renderIndexType()}
 					</Flex>
 				</Flex>
-				}
 			</div>
 		);
 	},

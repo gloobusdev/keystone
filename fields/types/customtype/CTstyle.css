@@ -175,5 +175,15 @@
 }
 :local(.fieldLabel) {
 	transition: color 280ms;
-	color: #777;
+	color: #777777;
+	margin: 0.1em 0 0.1em 1em;
+}
+:local(.fieldTitle) {
+	transition: color 280ms;
+	color: #000000;
+	margin: 1em 0 0.1em 0.1em;
+	font-weight: 600;
+}
+:local(.tabContent.visibleNone) {
+	display: none;
 }

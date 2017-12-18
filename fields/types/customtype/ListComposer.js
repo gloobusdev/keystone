@@ -19,21 +19,6 @@ export default class ListComposer extends React.Component {
 		});
 	};
 
-	/* constructor(props) {
-		super(props);
-
-		let allValues = this.props && this.props.allValues || {values:[]};
-		//allValues.values.unshift({value:'', label: 'Please select'});
-		let allSelected = this.props && this.props.allSelected || [];
-
-		this.state = {
-			allValues: allValues,
-			selected: {value: ''},
-			allSelected: allSelected,
-			selectData: allValues,
-		};
-	} */
-
 	componentWillMount() {
 		let allValues = this.props && this.props.allValues || {values:[]};
 		//allValues.values.unshift({value:'', label: 'Please select'});
@@ -46,6 +31,20 @@ export default class ListComposer extends React.Component {
 			selectData: allValues,
 		};
 	}
+
+	componentWillUpdate(nextProps, nextState) {
+		if (JSON.stringify(nextProps.allValues) !== JSON.stringify(this.state.allValues)) {
+			this.setState({
+				allValues: nextProps.allValues,
+				selectData: this.filerSelectedsFromAll(),
+			}, ()=>{
+				this.setState({
+					selectData: this.filerSelectedsFromAll(),
+				});
+			});
+		};
+	}
+
 
 	filerSelectedsFromAll() {
 		return {
