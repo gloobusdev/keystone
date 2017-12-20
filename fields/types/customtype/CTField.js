@@ -189,7 +189,7 @@ module.exports = Field.create({
 	 * Save the email contents to the correct "coordinates" of recipients and languages
 	 * @param {object} e - the event object of the editors onchange
 	 */
-	onEditorStateChange({e, nameOfTarget}) {
+	onEditorStateChange({value, nameOfTarget}) {
 		// preparing initial values from state to save the editors value
 		const content = this.state.value.content || {};
 		const {currentTabRecipient, currentTabLang} = this.state;
@@ -197,7 +197,7 @@ module.exports = Field.create({
 		// finding indexes to save the editors contents, on each language and recipent intersects
 		const recipientIndex = currentTabRecipient && currentTabRecipient.value || false;
 		const languageIndex = currentTabLang && currentTabLang.value || false;
-		const targetWhiteList = ['body', 'subject'];
+		const targetWhiteList = ['body', 'subject', 'variables'];
 
 		// we have no valid conditions tyo save the editors value!!!
 		if( !currentTabRecipient || !currentTabLang || !nameOfTarget ||
@@ -208,7 +208,13 @@ module.exports = Field.create({
 		// make sure if exists and is an object
 		content[recipientIndex] = content[recipientIndex] ? content[recipientIndex] : {};
 		content[recipientIndex][languageIndex] = content[recipientIndex][languageIndex] ? content[recipientIndex][languageIndex] : {};
-		content[recipientIndex][languageIndex][nameOfTarget] = e.target.getContent();
+		content[recipientIndex][languageIndex][nameOfTarget] = value;
+
+if ( nameOfTarget == 'variables' ) {
+	console.log( "================== LOADING VALUES ========================");
+	console.log( "SAVE => ", recipientIndex, ", ", languageIndex, ', ', nameOfTarget, ' = ', value);
+	console.log( "======================----------------====================");
+}
 
 		// update value in the current state of component.
 		this.setState({
@@ -229,7 +235,7 @@ module.exports = Field.create({
 	},
 
 	/**
-	 * Update the full content of the wysiwyg editor.
+	 * Update the full content of the wysiwyg editor, used selected tabs.
 	 */
 	updateValuesInEditorOnChangeSomething() {
 		const subject = this.fetchSafeEditorValue({nameOfTarget: 'subject'});
@@ -346,10 +352,11 @@ module.exports = Field.create({
 	 * Render the part of variable selector
 	 */
 	renderVariableSelector() {
-
 		const areVariabels = this.state.allVariables && this.state.allVariables.values &&
 			this.state.allVariables.values.length > 0 &&
 			this.state.allVariables.values.filter((elem)=>(elem.value !== '')).length > 0 || false;
+		const selectedVariablesByTabs = this.fetchSafeEditorValue({nameOfTarget: 'variables'});
+
 		return (
 			<Flex column flex={1} alignItems="stretch" key={"recipientSelectorKey"}>
 				<Flex column alignItems="start">
@@ -363,15 +370,12 @@ module.exports = Field.create({
 						}
 					</Flex>
 				</Flex>
-				{areVariabels && <ListComposer
+				<ListComposer
+					className={cs(styles.variableComposer, (!areVariabels ? styles.visibleNone : null))}
 					allValues={this.state.allVariables}
-					allSelected={this.state.value.variables}
-					onChange={(values)=>{
-						this.setState({
-							value: { ...this.state.value, ...{variables: values}}
-						});
-					}}
-				/>}
+					allSelected={selectedVariablesByTabs}
+					onChange={(value) => this.onEditorStateChange({value, nameOfTarget: 'variables'})}
+				/>
 			</Flex>
 		);
 	},
@@ -419,14 +423,12 @@ module.exports = Field.create({
 	 * This function will render a row of buttons to use for filling an editor.
 	 */
 	renderButtonRowForFillContent(functionForClick) {
-		const pieces = !!this.state.value.variables &&
-			Array.isArray(this.state.value.variables) &&
-			this.state.value.variables.length > 0 &&
-			this.state.value.variables || [];
+		const selectedVariablesByTabs = this.fetchSafeEditorValue({nameOfTarget: 'variables'});
+
 		return (
 			<Flex column flex={1} alignItems="stretch">
 				<Flex row alignItems="stretch" flex={1} key={"buttonRow"}>
-				{pieces && pieces.map((piece, index) => (
+				{selectedVariablesByTabs && selectedVariablesByTabs.map((piece, index) => (
 					<Flex column alignItems="start" key={"buttonRowElem"+index}
 						className={cs(styles.variableValueInserter, styles.noselect)}
 						onClick={(ev) => functionForClick(ev, piece.value)}
@@ -447,7 +449,21 @@ module.exports = Field.create({
 	},
 
 	/**
-	 * Gettin value from state to the current combination if the recipient, language and template part.
+	 * This function know of type of default values in the master content object by
+	 * name of the section (variables, body subject ...).
+	 */
+	getDefaultValueByNameOfTargetForContent(nameOfTarget) {
+		switch(nameOfTarget) {
+			case 'variables': return []; break;
+			case 'subject':
+			case 'body': return ''; break;
+			default: return null;
+		}
+		return null;
+	},
+
+	/**
+	 * Gettin value from state to the current combination of the recipient, language and template part.
 	 * @param {*} param0
 	 */
 	fetchSafeEditorValue({nameOfTarget}) {
@@ -455,9 +471,11 @@ module.exports = Field.create({
 		const { currentTabRecipient, currentTabLang } = this.state;
 		const curRecValue = currentTabRecipient.value || false;
 		const curLangValue = currentTabLang.value || false;
-		let editorState = '';
 
-		const targetWhiteList = ['body', 'subject'];
+		// default value by name of target
+		let editorState = this.getDefaultValueByNameOfTargetForContent(nameOfTarget);
+
+		const targetWhiteList = ['body', 'subject', 'variables'];
 
 		// we have no valid conditions tyo save the editors value!!!
 		if( !curRecValue || !curLangValue || !nameOfTarget ||
@@ -467,9 +485,12 @@ module.exports = Field.create({
 
 		content[curRecValue] = !!content[curRecValue] ? content[curRecValue] : {};
 		content[curRecValue][curLangValue] = !!content[curRecValue][curLangValue] ? content[curRecValue][curLangValue] : {
-			subject: '', body: ''
+			subject: this.getDefaultValueByNameOfTargetForContent('subject'),
+			body: this.getDefaultValueByNameOfTargetForContent('body'),
+			variables: this.getDefaultValueByNameOfTargetForContent('variables')
 		};
-		editorState = content[curRecValue][curLangValue][nameOfTarget] || '';
+		// Get the value or give a default empty value (like a string or array)
+		editorState = content[curRecValue][curLangValue][nameOfTarget] || this.getDefaultValueByNameOfTargetForContent(nameOfTarget);
 
 		return editorState;
 	},
@@ -494,9 +515,12 @@ module.exports = Field.create({
 				{this.renderButtonRowForFillContent(this.insertContentToSubject)}
 				<TinyMce
 					ref="customEditor"
-					onChange={(e) => this.onEditorStateChange({e, nameOfTarget: "subject"})}
+					onChange={(e) => this.onEditorStateChange({value: e.target.getContent(), nameOfTarget: "subject"})}
 					config={{
 						menubar: false,
+						statusbar: false,
+						height : 40,
+						min_height: 40,
 						toolbar: 'undo redo',
 						setup: (editor) => {
 							theSubjectEditor = !theSubjectEditor ? editor : theSubjectEditor;
@@ -529,9 +553,11 @@ module.exports = Field.create({
 				{this.renderButtonRowForFillContent(this.insertContentToBody)}
 				<TinyMce
 					ref="customEditor2"
-					onChange={(e) => this.onEditorStateChange({e, nameOfTarget: "body"})}
+					onChange={(e) => this.onEditorStateChange({value: e.target.getContent(), nameOfTarget: "body"})}
 					config={{
 						menubar: false,
+						statusbar: false,
+						height : 200,
 						toolbar: 'undo redo | bold italic underline strikethrough | alignleft aligncenter alignright | styleselect',
 						setup: (editor) => {
 							theBodyEditor = !theBodyEditor ? editor : theBodyEditor;
@@ -659,6 +685,9 @@ module.exports = Field.create({
 
 				<Flex column alignItems="start">
 					<Flex row>
+						<span className={styles.fieldTitle}>{"Recipient specific content"}</span>
+					</Flex>
+					<Flex row>
 						<span className={styles.fieldLabel}>{"You can navigate between recipients by using tabs below."}</span>
 					</Flex>
 				</Flex>
@@ -688,7 +717,7 @@ module.exports = Field.create({
 						selected={this.state.currentTabLang}
 					/>
 
-					<Flex column flex={1} alignItems="stretch" className={styles.tabContent}>
+					<Flex column flex={1} alignItems="stretch" className={cs(styles.tabContent,styles.languageTabContent)}>
 						{editorLoaded && this.renderSubjectEditor()}
 						{editorLoaded && this.renderBodyEditor()}
 						{this.renderIndexType()}

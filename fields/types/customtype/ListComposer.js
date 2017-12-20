@@ -11,6 +11,31 @@ var FormField = require('elemental').FormField;
 var FormInput = require('elemental').FormInput;
 var FormSelect = require('elemental').FormSelect;
 
+/**
+ * This is a specific function for copy the selecteds array.
+ * @param {*} value
+ */
+const makeACopy = (value) => {
+	let result = [];
+	if ( value && Array.isArray(value) && value.length > 0 ) {
+		value.forEach((item)=>{
+			result.push(Object.assign({}, item));
+		});
+	}
+	return result;
+}
+
+const makeACopyAllValues = (value) => {
+	let result = {values:[]};
+	if ( value && value.values && Array.isArray(value.values) && value.values.length > 0 ) {
+		result = Object.assign({}, value);
+		value.values.forEach((item)=>{
+			result.values.push(Object.assign({}, item));
+		});
+	}
+	return result;
+}
+
 export default class ListComposer extends React.Component {
 
 	componentDidMount() {
@@ -33,22 +58,53 @@ export default class ListComposer extends React.Component {
 	}
 
 	componentWillUpdate(nextProps, nextState) {
+		// when we change the set of usable elements we have to actialize this component pieces
 		if (JSON.stringify(nextProps.allValues) !== JSON.stringify(this.state.allValues)) {
+			// actialize the usable values
 			this.setState({
-				allValues: nextProps.allValues,
-				selectData: this.filerSelectedsFromAll(),
+				allValues: makeACopyAllValues(nextProps.allValues),
 			}, ()=>{
+				// actualize the dropdown values
 				this.setState({
 					selectData: this.filerSelectedsFromAll(),
 				});
+				// actualize the selected elemetns after dropdown options refresh
+				this.setState({
+					allSelected: this.removeInexistentsFromSelecteds(),
+				}, ()=>{
+					// callback of component
+					this.props.onChange(makeACopy(this.state.allSelected));
+				});
 			});
-		};
+		}
+
+		// when we change te selected items set, then we have to actialize this component pieces
+		if (JSON.stringify(nextProps.allSelected) !== JSON.stringify(this.state.allSelected)) {
+			// actialize the selected list
+			this.setState({
+				allSelected: makeACopy(nextProps.allSelected),
+			}, () => {
+				this.setState({
+					allSelected: this.removeInexistentsFromSelecteds(),
+				}, ()=>{
+					// actualize the dropdown content
+					this.setState({
+						selectData: this.filerSelectedsFromAll(),
+					});
+					// callback of component to know the main component the actual states
+					this.props.onChange(makeACopy(this.state.allSelected));
+				});
+			});
+		}
 	}
 
-
+	/**
+	 * FIltering only the unselected elements for the select options.
+	 */
 	filerSelectedsFromAll() {
+		let allSelected = this.state.allSelected || {values: []};
 		return {
-			...this.state.allValues,
+			...allSelected,
 			...{
 				values:	!!this.state.allValues &&
 				this.state.allValues.values &&
@@ -63,6 +119,18 @@ export default class ListComposer extends React.Component {
 				}) || []
 			}
 		};
+	}
+
+	/**
+	 * This function will remove the unpermited values from the selected lists and return with the new array.
+	 */
+	removeInexistentsFromSelecteds() {
+		return this.state.allSelected && this.state.allSelected.filter((item) => (
+			!!this.state.allValues &&
+			this.state.allValues.values &&
+			(this.state.allValues.values.length > 0) &&
+			(this.state.allValues.values.filter(j => (j.value == item.value)).length > 0)
+		)) || [];
 	}
 
 	addComposerItem() {
@@ -93,7 +161,7 @@ export default class ListComposer extends React.Component {
 		});
 
 		// callback of component
-		this.props.onChange(allSelected);
+		this.props.onChange(makeACopy(allSelected));
 	}
 
 	removeComposerItem(item) {
@@ -101,7 +169,7 @@ export default class ListComposer extends React.Component {
 			return false;
 		}
 
-		let allSelected =this.state.allSelected || [], index = -1;
+		let allSelected = this.state.allSelected || [], index = -1;
 		if (allSelected && allSelected.length > 0) {
 			allSelected.forEach((i, key) => {
 				index = i.value == item.value ? key : index;
@@ -119,7 +187,7 @@ export default class ListComposer extends React.Component {
 		});
 
 		// callback of component
-		this.props.onChange(allSelected);
+		this.props.onChange(makeACopy(allSelected));
 	}
 
 	setDefaultComposerItem(item) {
@@ -146,7 +214,7 @@ export default class ListComposer extends React.Component {
 		});
 
 		// callback of component
-		this.props.onChange(allSelected);
+		this.props.onChange(makeACopy(allSelected));
 	}
 
 
@@ -199,7 +267,7 @@ export default class ListComposer extends React.Component {
 		let allValues = this.state.allValues || {values:[]};
 		const selected = this.state.selectedRecipient;
 		return (
-			<Flex column flex={1} alignItems="stretch">
+			<Flex column flex={1} alignItems="stretch" className={this.props.className}>
 				<Flex row flex={1} alignItems="start" className={cs(styles.collectorItemsHolder, styles.noselect)}
 					key={"keyRecipientComposerComponent1"}>
 					{allSelected && allSelected.map((recipItem, recipKey)=>{
@@ -237,4 +305,5 @@ ListComposer.propTypes = {
 	allSelected: React.PropTypes.array,
 	onChange: React.PropTypes.func.isRequired,
 	options: React.PropTypes.object,
+	className: React.PropTypes.string,
 };
