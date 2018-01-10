@@ -2,6 +2,7 @@ import Field from '../Field';
 import React, { PropTypes } from 'react';
 import { findDOMNode } from 'react-dom';
 import { FormInput, FormSelect, Button } from 'elemental';
+import ConfirmationDialog from './../../../admin/client/App/shared/ConfirmationDialog';
 
 import { Editor } from 'react-draft-wysiwyg';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
@@ -13,6 +14,7 @@ import cs from 'classnames';
 
 import TinyMce from 'react-tinymce';
 import $script from 'scriptjs';
+import nesProp from 'nested-property';
 
 import ListComposer from './ListComposer';
 import TabRow from './TabRow';
@@ -33,6 +35,9 @@ const unshifValueIfNotExist = (intoThisArray, newValue) => {
 
 let editorLoaded = !!global.tinymce;
 let theSubjectEditor, theBodyEditor;
+const TARGET_BODY = 'body', TARGET_SUBJECT = 'subject', TARGET_VARS = 'variables', INDEPENDENTS = 'independents',
+	TARGET_INDEXTYPE = 'indextype';
+const targetWhiteList = [TARGET_BODY, TARGET_SUBJECT, TARGET_VARS];
 
 module.exports = Field.create({
 	displayName: 'Custom Type',
@@ -69,8 +74,6 @@ module.exports = Field.create({
 	 * When start the module we configure the initial state for everithing.
 	 */
 	getInitialState() {
-
-
 		let valueOfState = typeof this.props.values == 'object' && this.props.values.templateContent ?
 		this.props.values.templateContent : '{}';
 
@@ -113,6 +116,7 @@ module.exports = Field.create({
 			allModules: allModules,
 			allLanguages: allLanguages,
 			allVariables: allVariables,
+			confirmationDialog: null,
 			editorLoaded,
 		};
 	},
@@ -186,6 +190,9 @@ module.exports = Field.create({
 	},
 
 	/**
+	 * TODO solve for variables and IndexType to be independent by Language!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	 * TODO the indextype is a simple value now, but we have to save it separatelly for every recipient.
+	 *
 	 * Save the email contents to the correct "coordinates" of recipients and languages
 	 * @param {object} e - the event object of the editors onchange
 	 */
@@ -197,7 +204,6 @@ module.exports = Field.create({
 		// finding indexes to save the editors contents, on each language and recipent intersects
 		const recipientIndex = currentTabRecipient && currentTabRecipient.value || false;
 		const languageIndex = currentTabLang && currentTabLang.value || false;
-		const targetWhiteList = ['body', 'subject', 'variables'];
 
 		// we have no valid conditions tyo save the editors value!!!
 		if( !currentTabRecipient || !currentTabLang || !nameOfTarget ||
@@ -209,12 +215,6 @@ module.exports = Field.create({
 		content[recipientIndex] = content[recipientIndex] ? content[recipientIndex] : {};
 		content[recipientIndex][languageIndex] = content[recipientIndex][languageIndex] ? content[recipientIndex][languageIndex] : {};
 		content[recipientIndex][languageIndex][nameOfTarget] = value;
-
-if ( nameOfTarget == 'variables' ) {
-	console.log( "================== LOADING VALUES ========================");
-	console.log( "SAVE => ", recipientIndex, ", ", languageIndex, ', ', nameOfTarget, ' = ', value);
-	console.log( "======================----------------====================");
-}
 
 		// update value in the current state of component.
 		this.setState({
@@ -238,9 +238,9 @@ if ( nameOfTarget == 'variables' ) {
 	 * Update the full content of the wysiwyg editor, used selected tabs.
 	 */
 	updateValuesInEditorOnChangeSomething() {
-		const subject = this.fetchSafeEditorValue({nameOfTarget: 'subject'});
+		const subject = this.fetchSafeEditorValue({nameOfTarget: TARGET_SUBJECT});
 		this.setContentToSubject(subject);
-		const body = this.fetchSafeEditorValue({nameOfTarget: 'body'});
+		const body = this.fetchSafeEditorValue({nameOfTarget: TARGET_BODY});
 		this.setContentToBody(body);
 	},
 
@@ -306,6 +306,110 @@ if ( nameOfTarget == 'variables' ) {
 	},
 
 	/**
+	 * TODO this function must filter the restricted variables be the selected module.
+	 */
+	cleanUpAllOfTheSelectedEntitiesByModule() {
+		const varsWhiteList = this.state.value.allVariables && this.state.value.allVariables.values || [];
+		const allLanguages = this.state.allLanguages || false;
+		const content = this.state.value.content || false;
+		// targetWhiteList
+
+
+		const {recipients} = this.state.value;
+		let newContent = {};
+		let route = '';
+
+		// save only the module related values, others will erased
+		if(recipients && Array.isArray(recipients) && recipients.length > 0) {
+			recipients.forEach((rec)=>{
+				// Save language affected values
+				if(allLanguages && Array.isArray(allLanguages) && allLanguages.length > 0) {
+					allLanguages.forEach((lng)=>{
+						route = [rec.value, lng.value, TARGET_BODY].join('.');
+						nesProp.set(newContent, route, nesProp.get(content, route));
+
+						route = [rec.value, lng.value, TARGET_SUBJECT].join('.');
+						nesProp.set(newContent, route, nesProp.get(content, route));
+					});
+				}
+
+				// Filter the varsWhiteList variables
+				let oldVariables = nesProp.get(content, route), newVariables = [];
+				if (varsWhiteList && Array.isArray(varsWhiteList) && varsWhiteList.length > 0) {
+					varsWhiteList.forEach((whiteVar)=>{
+						oldVariables.forEach((oldVar)=>{
+							if (whiteVar.value == oldVar.value) {
+								newVariables.push({
+									value: oldVar.value,
+									label: oldVar.label
+								});
+							}
+						});
+					});
+				}
+
+				// Save independent values
+				route = [rec.value, INDEPENDENTS, TARGET_VARS].join('.');
+				nesProp.set(newContent, route, newVariables);
+
+				route = [rec.value, INDEPENDENTS, TARGET_INDEXTYPE].join('.');
+				nesProp.set(newContent, route, nesProp.get(content, route));
+			});
+		}
+
+		// update value in the current state of component.
+		this.setState({
+			value: {
+				...this.state.value,
+				...{content: newContent}
+			}
+		});
+
+		// update value in the props for store in the store. Support value for keystone.
+		this.props.onChange({
+			path: this.props.path,
+			value: {
+				...this.state.value,
+				...{content: newContent}
+			}
+		});
+	},
+
+	/**
+	 * Open a confirmation dialog for confirm the reset.
+	 * @param {*} handleReset
+	 */
+	confirmReset (module) {
+		const confirmationDialog = (
+			<ConfirmationDialog
+				isOpen
+				body={<p>If you want to change the affected module you will lose your changes. Are you sure?</p>}
+				confirmationLabel="Change module"
+				onCancel={()=>{
+					// change back because the user don't want to loose the changes.
+					const oldModule = this.state.value.module || '';
+					this.selectModule(oldModule);
+					this.removeConfirmationDialog();
+				}}
+				onConfirmation={()=>{
+					this.selectModule(module);
+					this.removeConfirmationDialog();
+				}}
+			/>
+		);
+		this.setState({ confirmationDialog });
+	},
+
+	/**
+	 * Remove confirmation dialog
+	 */
+	removeConfirmationDialog () {
+		this.setState({
+			confirmationDialog: null,
+		});
+	},
+
+	/**
 	 * Update module selector value in state and trigger update also for the props.
 	 * @param {*} module
 	 */
@@ -315,6 +419,8 @@ if ( nameOfTarget == 'variables' ) {
 		},() => {
 			this.setState({
 				allVariables: this.getVariablesListByModuleName(module),
+			}, () => {
+				this.cleanUpAllOfTheSelectedEntitiesByModule();
 			});
 		});
 		this.updateValue({ module });
@@ -329,7 +435,8 @@ if ( nameOfTarget == 'variables' ) {
 		const selected = modules && modules.values && modules.values.filter(i => i.value === module)[0];
 		return (
 			<FormSelect
-				onChange={this.selectModule}
+				// prependEmptyOption={true}
+				onChange={this.confirmReset}
 				options={modules && modules.values || []}
 				value={selected && selected.value}
 			/>
@@ -355,7 +462,7 @@ if ( nameOfTarget == 'variables' ) {
 		const areVariabels = this.state.allVariables && this.state.allVariables.values &&
 			this.state.allVariables.values.length > 0 &&
 			this.state.allVariables.values.filter((elem)=>(elem.value !== '')).length > 0 || false;
-		const selectedVariablesByTabs = this.fetchSafeEditorValue({nameOfTarget: 'variables'});
+		const selectedVariablesByTabs = this.fetchSafeEditorValue({nameOfTarget: TARGET_VARS});
 
 		return (
 			<Flex column flex={1} alignItems="stretch" key={"recipientSelectorKey"}>
@@ -374,7 +481,7 @@ if ( nameOfTarget == 'variables' ) {
 					className={cs(styles.variableComposer, (!areVariabels ? styles.visibleNone : null))}
 					allValues={this.state.allVariables}
 					allSelected={selectedVariablesByTabs}
-					onChange={(value) => this.onEditorStateChange({value, nameOfTarget: 'variables'})}
+					onChange={(value) => this.onEditorStateChange({value, nameOfTarget: TARGET_VARS})}
 				/>
 			</Flex>
 		);
@@ -423,7 +530,7 @@ if ( nameOfTarget == 'variables' ) {
 	 * This function will render a row of buttons to use for filling an editor.
 	 */
 	renderButtonRowForFillContent(functionForClick) {
-		const selectedVariablesByTabs = this.fetchSafeEditorValue({nameOfTarget: 'variables'});
+		const selectedVariablesByTabs = this.fetchSafeEditorValue({nameOfTarget: TARGET_VARS});
 
 		return (
 			<Flex column flex={1} alignItems="stretch">
@@ -454,9 +561,9 @@ if ( nameOfTarget == 'variables' ) {
 	 */
 	getDefaultValueByNameOfTargetForContent(nameOfTarget) {
 		switch(nameOfTarget) {
-			case 'variables': return []; break;
-			case 'subject':
-			case 'body': return ''; break;
+			case TARGET_VARS: return []; break;
+			case TARGET_SUBJECT:
+			case TARGET_BODY: return ''; break;
 			default: return null;
 		}
 		return null;
@@ -475,8 +582,6 @@ if ( nameOfTarget == 'variables' ) {
 		// default value by name of target
 		let editorState = this.getDefaultValueByNameOfTargetForContent(nameOfTarget);
 
-		const targetWhiteList = ['body', 'subject', 'variables'];
-
 		// we have no valid conditions tyo save the editors value!!!
 		if( !curRecValue || !curLangValue || !nameOfTarget ||
 			targetWhiteList.indexOf(nameOfTarget) === -1 ) {
@@ -485,9 +590,9 @@ if ( nameOfTarget == 'variables' ) {
 
 		content[curRecValue] = !!content[curRecValue] ? content[curRecValue] : {};
 		content[curRecValue][curLangValue] = !!content[curRecValue][curLangValue] ? content[curRecValue][curLangValue] : {
-			subject: this.getDefaultValueByNameOfTargetForContent('subject'),
-			body: this.getDefaultValueByNameOfTargetForContent('body'),
-			variables: this.getDefaultValueByNameOfTargetForContent('variables')
+			subject: this.getDefaultValueByNameOfTargetForContent(TARGET_SUBJECT),
+			body: this.getDefaultValueByNameOfTargetForContent(TARGET_BODY),
+			variables: this.getDefaultValueByNameOfTargetForContent(TARGET_VARS)
 		};
 		// Get the value or give a default empty value (like a string or array)
 		editorState = content[curRecValue][curLangValue][nameOfTarget] || this.getDefaultValueByNameOfTargetForContent(nameOfTarget);
@@ -499,7 +604,7 @@ if ( nameOfTarget == 'variables' ) {
 	 * Rendering the subject editor of template
 	 */
 	renderSubjectEditor() {
-		const editorState = this.fetchSafeEditorValue({nameOfTarget: 'subject'});
+		const editorState = this.fetchSafeEditorValue({nameOfTarget: TARGET_SUBJECT});
 
 		return (
 			<div>
@@ -536,7 +641,7 @@ if ( nameOfTarget == 'variables' ) {
 	 * Rendering the emailbody editor of template
 	 */
 	renderBodyEditor() {
-		const editorState = this.fetchSafeEditorValue({nameOfTarget: 'body'});
+		const editorState = this.fetchSafeEditorValue({nameOfTarget: TARGET_BODY});
 
 		return (
 			<div>
@@ -569,10 +674,37 @@ if ( nameOfTarget == 'variables' ) {
 		)
 	},
 
+	changeIndexType(type, lowValue) {
+		const { currentTabRecipient } = this.state;
+		const rec = currentTabRecipient.value || '';
+		let routeOfType = ['value', 'content', rec, INDEPENDENTS, TARGET_INDEXTYPE, 'type'].join('.');
+		let routeOfLowValue = ['value', 'content', rec, INDEPENDENTS, TARGET_INDEXTYPE, 'lowValue'].join('.');
+
+		let newIT = {
+			type: type === null ? nesProp.get(this.state, routeOfType) || '' : type,
+			lowValue: lowValue === null ? nesProp.get(this.state, routeOfLowValue) || '' : lowValue
+		}
+
+		let routeOfIndexType = ['value', 'content', rec, INDEPENDENTS, TARGET_INDEXTYPE].join('.');
+		let newValue = {};
+		nesProp.set(this.state, routeOfIndexType, newIT);
+
+		this.setState({
+			value: {
+				...this.state.value
+			}
+		});
+	},
+
 	/**
 	 * This will render the indextype fields
 	 */
 	renderIndexType() {
+		const { currentTabRecipient } = this.state;
+		const rec = currentTabRecipient.value || '';
+		let routeOfType = ['value', 'content', rec, INDEPENDENTS, TARGET_INDEXTYPE, 'type'].join('.');
+		let routeOfLowValue = ['value', 'content', rec, INDEPENDENTS, TARGET_INDEXTYPE, 'lowValue'].join('.');
+
 		return (
 			<div>
 				<Flex column alignItems="start">
@@ -591,18 +723,8 @@ if ( nameOfTarget == 'variables' ) {
 						</Flex>
 						<Flex column flex={3} alignItems="start">
 							<FormInput
-								value={this.state.value && this.state.value.indexType && this.state.value.indexType.type || ''}
-								onChange={(e)=>{
-									this.setState({
-										value: {...this.state.value,
-											...{indexType: {
-													type: e.target.value,
-													lowValue: this.state.value && this.state.value.indexType && this.state.value.indexType.lowValue || ''
-												}
-											}
-										}
-									});
-								}}
+								value={nesProp.get(this.state, routeOfType) || ''}
+								onChange={(e) => {this.changeIndexType(e.target.value, null)}}
 							/>
 						</Flex>
 					</Flex>
@@ -613,18 +735,8 @@ if ( nameOfTarget == 'variables' ) {
 
 						<Flex column flex={3} alignItems="start">
 							<FormInput
-								value={this.state.value && this.state.value.indexType && this.state.value.indexType.lowValue || ''}
-								onChange={(e)=>{
-									this.setState({
-										value: {...this.state.value,
-											...{indexType: {
-													type:  this.state.value && this.state.value.indexType && this.state.value.indexType.type || '',
-													lowValue: e.target.value,
-												}
-											}
-										}
-									});
-								}}
+								value={nesProp.get(this.state, routeOfLowValue) || ''}
+								onChange={(e) => {this.changeIndexType(null, e.target.value)}}
 							/>
 						</Flex>
 
@@ -720,9 +832,10 @@ if ( nameOfTarget == 'variables' ) {
 					<Flex column flex={1} alignItems="stretch" className={cs(styles.tabContent,styles.languageTabContent)}>
 						{editorLoaded && this.renderSubjectEditor()}
 						{editorLoaded && this.renderBodyEditor()}
-						{this.renderIndexType()}
 					</Flex>
+					{this.renderIndexType()}
 				</Flex>
+				{this.state.confirmationDialog}
 			</div>
 		);
 	},

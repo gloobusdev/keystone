@@ -29,8 +29,8 @@ const makeACopyAllValues = (value) => {
 	let result = {values:[]};
 	if ( value && value.values && Array.isArray(value.values) && value.values.length > 0 ) {
 		result = Object.assign({}, value);
-		value.values.forEach((item)=>{
-			result.values.push(Object.assign({}, item));
+		value.values.forEach((item, index)=>{
+			result.values[index] = Object.assign({}, item);
 		});
 	}
 	return result;
@@ -48,7 +48,6 @@ export default class ListComposer extends React.Component {
 		let allValues = this.props && this.props.allValues || {values:[]};
 		//allValues.values.unshift({value:'', label: 'Please select'});
 		let allSelected = this.props && this.props.allSelected || [];
-
 		this.state = {
 			allValues: allValues,
 			selected: {value: ''},
@@ -59,7 +58,9 @@ export default class ListComposer extends React.Component {
 
 	componentWillUpdate(nextProps, nextState) {
 		// when we change the set of usable elements we have to actialize this component pieces
-		if (JSON.stringify(nextProps.allValues) !== JSON.stringify(this.state.allValues)) {
+		let isNotEmpties = !_.isEmpty(nextProps.allValues) || !_.isEmpty(this.state.allValues);
+		let isNotEqual = JSON.stringify(nextProps.allValues) !== JSON.stringify(this.state.allValues);
+		if (isNotEqual && isNotEmpties) {
 			// actialize the usable values
 			this.setState({
 				allValues: makeACopyAllValues(nextProps.allValues),
@@ -79,7 +80,9 @@ export default class ListComposer extends React.Component {
 		}
 
 		// when we change te selected items set, then we have to actialize this component pieces
-		if (JSON.stringify(nextProps.allSelected) !== JSON.stringify(this.state.allSelected)) {
+		isNotEmpties = !_.isEmpty(nextProps.allSelected) || !_.isEmpty(this.state.allSelected);
+		isNotEqual = JSON.stringify(nextProps.allSelected) !== JSON.stringify(this.state.allSelected);
+		if (isNotEqual && isNotEmpties) {
 			// actialize the selected list
 			this.setState({
 				allSelected: makeACopy(nextProps.allSelected),
@@ -96,6 +99,41 @@ export default class ListComposer extends React.Component {
 				});
 			});
 		}
+	}
+
+	shouldComponentUpdate(nextProps, nextState) {
+		// when we change the set of usable elements we have to actialize this component pieces
+		let isNotEmpties = !_.isEmpty(nextProps.allValues) || !_.isEmpty(this.props.allValues);
+		let isNotEqual = JSON.stringify(nextProps.allValues) !== JSON.stringify(this.props.allValues);
+		if (isNotEqual && isNotEmpties) {
+			return true;
+		}
+		// when we change te selected items set, then we have to actialize this component pieces
+		isNotEmpties = !_.isEmpty(nextState.allSelected) || !_.isEmpty(this.state.allSelected);
+		isNotEqual = JSON.stringify(nextState.allSelected) !== JSON.stringify(this.state.allSelected);
+		if (isNotEqual && isNotEmpties) {
+			return true;
+		}
+		// watch props allSelected
+		isNotEmpties = !_.isEmpty(nextProps.allSelected) || !_.isEmpty(this.props.allSelected);
+		isNotEqual = JSON.stringify(nextProps.allSelected) !== JSON.stringify(this.props.allSelected);
+		if (isNotEqual && isNotEmpties) {
+			return true;
+		}
+		// when the content of the select refreshed
+		isNotEmpties = !_.isEmpty(nextState.selectData) || !_.isEmpty(this.state.selectData);
+		isNotEqual = JSON.stringify(nextState.selectData) !== JSON.stringify(this.state.selectData);
+		if (isNotEqual && isNotEmpties) {
+			return true;
+		}
+		// when the selected value in select was changed
+		isNotEmpties = !_.isEmpty(nextState.selected) || !_.isEmpty(this.state.selected);
+		isNotEqual = JSON.stringify(nextState.selected) !== JSON.stringify(this.state.selected);
+		if (isNotEqual && isNotEmpties) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -211,6 +249,8 @@ export default class ListComposer extends React.Component {
 		this.setState({
 			allSelected: allSelected,
 			selectData: this.filerSelectedsFromAll(),
+		}, () => {
+			this.forceUpdate();
 		});
 
 		// callback of component
