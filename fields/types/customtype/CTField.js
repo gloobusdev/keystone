@@ -190,9 +190,6 @@ module.exports = Field.create({
 	},
 
 	/**
-	 * TODO solve for variables and IndexType to be independent by Language!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	 * TODO the indextype is a simple value now, but we have to save it separatelly for every recipient.
-	 *
 	 * Save the email contents to the correct "coordinates" of recipients and languages
 	 * @param {object} e - the event object of the editors onchange
 	 */
@@ -386,9 +383,6 @@ module.exports = Field.create({
 				body={<p>If you want to change the affected module you will lose your changes. Are you sure?</p>}
 				confirmationLabel="Change module"
 				onCancel={()=>{
-					// change back because the user don't want to loose the changes.
-					const oldModule = this.state.value.module || '';
-					this.selectModule(oldModule);
 					this.removeConfirmationDialog();
 				}}
 				onConfirmation={()=>{
