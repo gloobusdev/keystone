@@ -297,13 +297,11 @@ module.exports = Field.create({
 		}
 		unshifValueIfNotExist(newVariables, {value:'', label: 'Please select variable'});
 
-		// TODO remove variable also from selected variables.
-
 		return newVariables;
 	},
 
 	/**
-	 * TODO this function must filter the restricted variables be the selected module.
+	 * This function filter the restricted variables be the selected module.
 	 */
 	cleanUpAllOfTheSelectedEntitiesByModule() {
 		const varsWhiteList = this.state.value.allVariables && this.state.value.allVariables.values || [];
