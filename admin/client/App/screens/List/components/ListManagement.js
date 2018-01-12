@@ -4,6 +4,7 @@ import { Button, GlyphButton, InlineGroup as Group, InlineGroupSection as Sectio
 function ListManagement ({
 	checkedItemCount,
 	handleDelete,
+	handleDuplicate,
 	handleSelect,
 	handleToggle,
 	isOpen,
@@ -23,6 +24,7 @@ function ListManagement ({
 	const actionButtons = isOpen && (
 		<Section>
 			<GlyphButton
+				key={"gb1"}
 				color="cancel"
 				disabled={!checkedItemCount}
 				glyph="trashcan"
@@ -30,6 +32,16 @@ function ListManagement ({
 				position="left"
 				variant="link">
 				Delete
+			</GlyphButton>
+			<GlyphButton
+				key={"gb2"}
+				color="cancel"
+				disabled={!checkedItemCount}
+				glyph="repo-clone"
+				onClick={handleDuplicate}
+				position="left"
+				variant="link">
+				Duplicate
 			</GlyphButton>
 		</Section>
 	);
@@ -94,6 +106,7 @@ function ListManagement ({
 ListManagement.propTypes = {
 	checkedItems: PropTypes.number,
 	handleDelete: PropTypes.func.isRequired,
+	handleDuplicate: PropTypes.func.isRequired,
 	handleSelect: PropTypes.func.isRequired,
 	handleToggle: PropTypes.func.isRequired,
 	isOpen: PropTypes.bool,

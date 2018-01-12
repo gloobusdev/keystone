@@ -112,6 +112,33 @@ List.prototype.createItem = function (formData, callback) {
 	});
 };
 
+
+/**
+ * Duplicate items via the API
+ *
+ * @param  {FormData} formData The submitted form data
+ * @param  {Function} callback Called after the API call
+ */
+List.prototype.duplicateItems = function (itemIds, callback) {
+	const url = Keystone.adminPath + '/api/' + this.path + '/duplicate';
+	xhr({
+		url: url,
+		method: 'POST',
+		headers: Keystone.csrf.header,
+		json: {
+			ids: itemIds,
+		},
+	}, (err, resp, body) => {
+		if (err) return callback(err);
+		// Pass the body as result or error, depending on the statusCode
+		if (resp.statusCode === 200) {
+			callback(null, body);
+		} else {
+			callback(body);
+		}
+	});
+};
+
 /**
  * Update a specific item
  *
