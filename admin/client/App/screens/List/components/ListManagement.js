@@ -12,6 +12,7 @@ function ListManagement ({
 	itemsPerPage,
 	nodelete,
 	noedit,
+	listId,
 	...props,
 }) {
 	// do not render if there's no results
@@ -33,7 +34,7 @@ function ListManagement ({
 				variant="link">
 				Delete
 			</GlyphButton>
-			<GlyphButton
+			{(listId === 'email-templates') && <GlyphButton
 				key={"gb2"}
 				color="cancel"
 				disabled={!checkedItemCount}
@@ -42,7 +43,7 @@ function ListManagement ({
 				position="left"
 				variant="link">
 				Duplicate
-			</GlyphButton>
+			</GlyphButton>}
 		</Section>
 	);
 
@@ -114,6 +115,7 @@ ListManagement.propTypes = {
 	itemsPerPage: PropTypes.number,
 	nodelete: PropTypes.bool,
 	noedit: PropTypes.bool,
+	listId: PropTypes.string,
 };
 
 module.exports = ListManagement;

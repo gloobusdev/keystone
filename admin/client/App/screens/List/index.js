@@ -251,6 +251,7 @@ const ListView = React.createClass({
 				itemsPerPage={this.props.lists.page.size}
 				nodelete={currentList.nodelete}
 				noedit={currentList.noedit}
+				listId={currentList.id}
 			/>
 		);
 	},
