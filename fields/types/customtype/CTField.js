@@ -309,7 +309,6 @@ module.exports = Field.create({
 		const content = this.state.value.content || false;
 		// targetWhiteList
 
-
 		const {recipients} = this.state.value;
 		let newContent = {};
 		let route = '';
@@ -375,6 +374,12 @@ module.exports = Field.create({
 	 * @param {*} handleReset
 	 */
 	confirmReset (module) {
+		// if we make a switch from nothing to something, we don't need confirmation dialog yet
+		if ( _.isEmpty(this.state.value.module) ) {
+
+			return this.selectModule(module);
+		}
+
 		const confirmationDialog = (
 			<ConfirmationDialog
 				isOpen
@@ -413,6 +418,9 @@ module.exports = Field.create({
 				allVariables: this.getVariablesListByModuleName(module),
 			}, () => {
 				this.cleanUpAllOfTheSelectedEntitiesByModule();
+				this.setContentToSubject('');
+				this.setContentToBody('');
+				// this.forceUpdate();
 			});
 		});
 		this.updateValue({ module });
@@ -447,6 +455,22 @@ module.exports = Field.create({
 		});
 	},
 
+	changeVariables(vars) {
+		const { currentTabRecipient } = this.state;
+		const rec = currentTabRecipient.value || '';
+		let routeOfVariables = ['value', 'content', rec, INDEPENDENTS, TARGET_VARS].join('.');
+
+		// TODO do test, lot of tests, verify if we don't need to copy it
+		let newVars = vars;
+		nesProp.set(this.state, routeOfVariables, newVars);
+
+		this.setState({
+			value: {
+				...this.state.value
+			}
+		});
+	},
+
 	/**
 	 * Render the part of variable selector
 	 */
@@ -473,7 +497,7 @@ module.exports = Field.create({
 					className={cs(styles.variableComposer, (!areVariabels ? styles.visibleNone : null))}
 					allValues={this.state.allVariables}
 					allSelected={selectedVariablesByTabs}
-					onChange={(value) => this.onEditorStateChange({value, nameOfTarget: TARGET_VARS})}
+					onChange={(value) => this.changeVariables(value)}
 				/>
 			</Flex>
 		);
@@ -563,6 +587,7 @@ module.exports = Field.create({
 
 	/**
 	 * Gettin value from state to the current combination of the recipient, language and template part.
+	 * This is neccessary for galvanic isolation of values addresses
 	 * @param {*} param0
 	 */
 	fetchSafeEditorValue({nameOfTarget}) {
@@ -580,14 +605,13 @@ module.exports = Field.create({
 			return editorState;
 		}
 
-		content[curRecValue] = !!content[curRecValue] ? content[curRecValue] : {};
-		content[curRecValue][curLangValue] = !!content[curRecValue][curLangValue] ? content[curRecValue][curLangValue] : {
-			subject: this.getDefaultValueByNameOfTargetForContent(TARGET_SUBJECT),
-			body: this.getDefaultValueByNameOfTargetForContent(TARGET_BODY),
-			variables: this.getDefaultValueByNameOfTargetForContent(TARGET_VARS)
-		};
+		let route = [ curRecValue, curLangValue, nameOfTarget].join('.');
+		if ( nameOfTarget == TARGET_VARS || nameOfTarget == TARGET_INDEXTYPE ) {
+			route = [ curRecValue, INDEPENDENTS, nameOfTarget].join('.');
+		}
+
 		// Get the value or give a default empty value (like a string or array)
-		editorState = content[curRecValue][curLangValue][nameOfTarget] || this.getDefaultValueByNameOfTargetForContent(nameOfTarget);
+		editorState = nesProp.get(content, route) || this.getDefaultValueByNameOfTargetForContent(nameOfTarget);
 
 		return editorState;
 	},
@@ -745,7 +769,8 @@ module.exports = Field.create({
 		const { currentTabRecipient, currentTabLang } = this.state;
 		const { editorLoaded } = this.state;
 		const { recipients } = this.state.value || {recipients: []};
-		const areEditorsVisible = this.state.value && this.state.value.recipients && this.state.value.recipients.length > 0;
+		let areEditorsVisible = !_.isEmpty(recipients) && _.isArray(recipients) && recipients.length > 0;
+		areEditorsVisible = areEditorsVisible && !!nesProp.get(this.state, ['value','module'].join('.'));
 
 		return (
 			<div>
@@ -787,7 +812,7 @@ module.exports = Field.create({
 					type="hidden"
 				/>
 
-				<Flex column alignItems="start">
+				<Flex column alignItems="start" className={cs(styles.holderForBlocks, (!areEditorsVisible ? styles.visibleNone : null))}>
 					<Flex row>
 						<span className={styles.fieldTitle}>{"Recipient specific content"}</span>
 					</Flex>
@@ -800,6 +825,7 @@ module.exports = Field.create({
 					onChange={this.onTabRecipeintSet}
 					tabs={this.state.value && this.state.value.recipients || []}
 					selected={this.state.currentTabRecipient}
+					className={cs(styles.holderForBlocks, (!areEditorsVisible ? styles.visibleNone : null))}
 				/>
 				<Flex column flex={1} alignItems="stretch"
 					className={cs(styles.tabContent, (!areEditorsVisible ? styles.visibleNone : null))}>

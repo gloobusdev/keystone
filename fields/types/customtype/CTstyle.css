@@ -187,3 +187,6 @@
 :local(.variableComposer.visibleNone) {
 	display: none;
 }
+:local(.holderForBlocks.visibleNone) {
+	display: none;
+}

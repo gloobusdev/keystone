@@ -45,7 +45,7 @@ export default class TabRow extends React.Component {
 	render() {
 		const {tabs, selected} = this.state;
 		return (
-			<Flex column flex={1} alignItems="stretch">
+			<Flex column flex={1} alignItems="stretch" className={this.props.className}>
 				<Flex row alignItems="stretch" flex={1} key={"primaryTabs"}>
 					{tabs && tabs.map((tab, index) => {
 						return (
@@ -65,6 +65,7 @@ export default class TabRow extends React.Component {
 };
 
 TabRow.propTypes = {
+	className: React.PropTypes.string,
 	tabs: React.PropTypes.array.isRequired,
 	onChange: React.PropTypes.func.isRequired,
 	selected: React.PropTypes.object,
