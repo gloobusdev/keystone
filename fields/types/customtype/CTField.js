@@ -423,6 +423,7 @@ module.exports = Field.create({
 				// this.forceUpdate();
 			});
 		});
+
 		this.updateValue({ module });
 	},
 
@@ -643,6 +644,14 @@ module.exports = Field.create({
 						height : 40,
 						min_height: 40,
 						toolbar: 'undo redo',
+						forced_root_block: '',
+						formats: {
+							removeformat: [
+							  {selector: '*', remove : 'all', split : true, expand : true, block_expand: true, deep : true},
+							]
+						},
+						entity_encoding : "raw",
+						extended_valid_elements: '',
 						setup: (editor) => {
 							theSubjectEditor = !theSubjectEditor ? editor : theSubjectEditor;
 						}
