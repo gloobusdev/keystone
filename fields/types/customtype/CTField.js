@@ -505,24 +505,34 @@ module.exports = Field.create({
 	},
 
 	/**
-	 * Separate function for insert contetnt to editor by clicking. This was made because on the timeline
+	 * Separate function for insert content to editor by clicking. This was made because on the timeline
 	 * of element creation the editor reference created after the variable buttons, and the attached clickhandler.
-	 * But this function is given by referenc to onclick handler, and this make possible to call this when ewe have
+	 * But this function is given by reference to onclick handler, and this make possible to call this when ewe have
 	 * value in the editor reference variable.
 	 * @param {*} ev
 	 * @param {*} value
 	 */
 	insertContentToSubject(ev, value) {
-		theSubjectEditor && theSubjectEditor.insertContent('{{'+value+'}}');
+		if (theSubjectEditor) {
+			// three step insert because the TinyMCE skip to fire onchange when you do the first insert.
+			theSubjectEditor.insertContent('{{');
+			theSubjectEditor.insertContent(value);
+			theSubjectEditor.insertContent('}}');
+		}
 	},
 
 	/**
-	 * Separate function for insert contetnt to editor by clicking.
+	 * Separate function for insert content to editor by clicking.
 	 * @param {*} ev
 	 * @param {*} value
 	 */
 	insertContentToBody(ev, value) {
-		theBodyEditor && theBodyEditor.insertContent('{{'+value+'}}');
+		// three step insert because the TinyMCE skip to fire onchange when you do the first insert.
+		if (theBodyEditor) {
+			theBodyEditor.insertContent('{{');
+			theBodyEditor.insertContent(value);
+			theBodyEditor.insertContent('}}');
+		}
 	},
 
 	/**

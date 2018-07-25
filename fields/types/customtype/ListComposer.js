@@ -7,8 +7,6 @@ import cs from 'classnames';
 import styles from './CTstyle.css';
 
 var Button = require('elemental').Button;
-var FormField = require('elemental').FormField;
-var FormInput = require('elemental').FormInput;
 var FormSelect = require('elemental').FormSelect;
 
 /**
@@ -233,16 +231,18 @@ export default class ListComposer extends React.Component {
 			return false;
 		}
 
-		let allSelected = this.state.allSelected || [], index = -1;
+		let allSelected = this.state.allSelected || [], index = -1, oldDefault = -1;
 		if (allSelected && allSelected.length > 0) {
 			allSelected.forEach((i, key) => {
 				index = i.value == item.value ? key : index;
+				oldDefault = allSelected[key].default ? key : oldDefault;
 				allSelected[key].default = false;
 			});
 		}
 
+		// if old default is the same what the new one the leave desactivate, else leave clear all and make a new default
 		if (index > -1) {
-			allSelected[index].default = true;
+			allSelected[index].default = oldDefault !== index;
 		}
 
 		// update the new list with selected values, and remove from select the already added selected.
