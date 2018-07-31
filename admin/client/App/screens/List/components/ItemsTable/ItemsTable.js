@@ -19,7 +19,7 @@ const ItemsTable = React.createClass({
 	},
 	renderCols () {
 		let cols = this.props.columns.map(col => (
-			<col key={col.path} width={col.width} />
+			<col key={col.path+(col.virtualPath||'')} width={col.width} />
 		));
 
 		// add delete col when available
@@ -67,7 +67,7 @@ const ItemsTable = React.createClass({
 			});
 
 			return (
-				<th key={col.path} colSpan="1">
+				<th key={col.path+(col.virtualPath||'')} colSpan="1">
 					<button
 						className={colClassName}
 						onClick={() => {
@@ -77,7 +77,7 @@ const ItemsTable = React.createClass({
 							);
 						}}
 						title={buttonTitle}>
-						{col.label}
+						{col.virtualLabel && col.virtualLabel.split('_').join(' ') || col.label}
 						<span className="th-sort__icon" />
 					</button>
 				</th>

@@ -81,8 +81,10 @@ const List = function (options) {
 	// TODO these options are possibly unused
 	assign(this, options);
 	this.columns = getColumns(this);
+
 	this.expandedDefaultColumns = this.expandColumns(this.defaultColumns);
-	this.defaultColumnPaths = this.expandedDefaultColumns.map(i => i.path).join(',');
+	//this.defaultColumnPaths = this.expandedDefaultColumns.map(i => i.path).join(',');
+	this.defaultColumnPaths = this.expandedDefaultColumns.map(i => (i.path + (!!i.virtualPath ? ('.'+i.virtualPath):''))).join(',');
 };
 
 /**
@@ -169,11 +171,13 @@ List.prototype.expandColumns = function (input) {
 		const split = i.split('|');
 		let path = split[0];
 		let width = split[1];
+		let virtualPath = split[2];
+		let virtualLabel = split[3];
 		if (path === '__name__') {
 			path = this.namePath;
 		}
 		const field = this.fields[path];
-		if (!field) {
+		if (!field && !virtualPath) {
 			// TODO: Support arbitary document paths
 			if (!this.hidden) {
 				if (path === this.namePath) {
@@ -193,6 +197,8 @@ List.prototype.expandColumns = function (input) {
 			path: field.path,
 			type: field.type,
 			width: width,
+			virtualPath: virtualPath,
+			virtualLabel: virtualLabel,
 		};
 	}).filter(truthy);
 	if (!nameIncluded) {

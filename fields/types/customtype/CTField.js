@@ -505,9 +505,9 @@ module.exports = Field.create({
 	},
 
 	/**
-	 * Separate function for insert content to editor by clicking. This was made because on the timeline
+	 * Separate function for insert contetnt to editor by clicking. This was made because on the timeline
 	 * of element creation the editor reference created after the variable buttons, and the attached clickhandler.
-	 * But this function is given by reference to onclick handler, and this make possible to call this when ewe have
+	 * But this function is given by referenc to onclick handler, and this make possible to call this when ewe have
 	 * value in the editor reference variable.
 	 * @param {*} ev
 	 * @param {*} value
@@ -522,7 +522,7 @@ module.exports = Field.create({
 	},
 
 	/**
-	 * Separate function for insert content to editor by clicking.
+	 * Separate function for insert contetnt to editor by clicking.
 	 * @param {*} ev
 	 * @param {*} value
 	 */
@@ -809,7 +809,7 @@ module.exports = Field.create({
 						<span className={styles.fieldTitle}>{"Recipients"}</span>
 					</Flex>
 					<Flex row>
-						<span className={styles.fieldLabel}>{"Please select recipients for this template."}</span>
+						<span className={styles.fieldLabel}>{"Please select recipients for this template. You can pin the default recipient of the template."}</span>
 					</Flex>
 				</Flex>
 				<Flex column flex={1} alignItems="stretch" key={"recipientSelectorKey"}>
@@ -883,7 +883,7 @@ module.exports = Field.create({
 	 */
 	renderValue () {
 		return this.props.value ? (
-			<FormInput noedit href={'mailto:' + this.props.value}>{this.props.value}</FormInput>
+			<FormInput noedit>{this.props.value}</FormInput>
 		) : (
 			<FormInput noedit>(not set)</FormInput>
 		);

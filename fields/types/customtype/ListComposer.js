@@ -324,7 +324,7 @@ export default class ListComposer extends React.Component {
 							onChange={(val) => this.selectComposerItem(val)}
 							options={this.state.selectData && this.state.selectData.values || []}
 							value={selected && selected.value}
-							placeholder={'asdasd'}
+							placeholder={''}
 						/>
 					</Flex>
 					<Flex flex={1} column alignItems="end" className={cs(styles.recipientItemAddHold, styles.right)}>
