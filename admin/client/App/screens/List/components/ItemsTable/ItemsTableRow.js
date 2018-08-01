@@ -40,7 +40,9 @@ const ItemsRow = React.createClass({
 		var cells = this.props.columns.map((col, i) => {
 			var ColumnType = Columns[col.type] || Columns.__unrecognised__;
 			var linkTo = !i ? `${Keystone.adminPath}/${this.props.list.path}/${itemId}` : undefined;
-			return <ColumnType key={col.path+(col.virtualPath||'')} list={this.props.list} col={col} data={item} linkTo={linkTo} />;
+			return <ColumnType key={col.path+i+(col.virtualPath+i||'')}
+				list={this.props.list} col={{...col, currentColumnNumber: i}}
+				data={item} linkTo={linkTo} />;
 		});
 
 		// add sortable icon when applicable

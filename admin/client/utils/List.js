@@ -176,14 +176,23 @@ List.prototype.expandColumns = function (input) {
 		if (path === '__name__') {
 			path = this.namePath;
 		}
-		const field = this.fields[path];
-		if (!field && !virtualPath) {
+
+		let field = this.fields[path];
+		let firsthPart = path
+		if ( virtualPath ) {
+			firsthPart = path.split('.')
+			if ( firsthPart[0] ) {
+				field = this.fields[firsthPart[0]];
+			}
+		}
+
+		if (!field) {
 			// TODO: Support arbitary document paths
 			if (!this.hidden) {
 				if (path === this.namePath) {
 					console.warn(`List ${this.key} did not specify any default columns or a name field`);
 				} else {
-					console.warn(`List ${this.key} specified an invalid default column: ${path}`);
+					console.warn(`List ${this.key} specified an invalid default column: ${path}. Virtual path: ${virtualPath}`);
 				}
 			}
 			return;
@@ -193,9 +202,9 @@ List.prototype.expandColumns = function (input) {
 		}
 		return {
 			field: field,
-			label: field.label,
-			path: field.path,
-			type: field.type,
+			label: field && (virtualLabel ? virtualLabel : field.label),
+			path: field && field.path,
+			type: field && field.type,
 			width: width,
 			virtualPath: virtualPath,
 			virtualLabel: virtualLabel,
