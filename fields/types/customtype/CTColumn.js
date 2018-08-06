@@ -29,6 +29,9 @@ var CTColumn = React.createClass({
 	},
 	getValue () {
 		// cropping text is important for textarea, which uses this column
+		//console.log(this.props.col)
+		//console.log(this.props.list.defaultColumnPaths)
+		//console.log(this.props.list.expandedDefaultColumns)
 
 		if ( this.props.col.path === 'templateContent' && !this.props.col.virtualPath ) {
 			let i = nesProp.get( this.props, 'col.currentColumnNumber');
@@ -61,7 +64,7 @@ var CTColumn = React.createClass({
 			}
 
 			if ( this.props.col.virtualPath == 'recipients' ) {
-				virtualVal = virtualVal.reduce((sum, current)=>{
+				virtualVal = virtualVal.reduce((sum, current) => {
 					return sum + (sum ? (', ') : '') +current.label
 				}, '');
 			}
@@ -71,7 +74,10 @@ var CTColumn = React.createClass({
 				let wProdIT = nesProp.get(objValue, 'content.willemotProduction.independents.indextype.type');
 				let wClaimIT = nesProp.get(objValue, 'content.willemotClaims.independents.indextype.type');
 				let wThirdPartIT = nesProp.get(objValue, 'content.thirdParties.independents.indextype.type');
-			
+
+				//console.log( "objValue objValue objValue", objValue);
+				//console.log( "virtualVal virtualVal virtualVal", virtualVal, wProdIT, wClaimIT, wThirdPartIT);
+
 				if( wProdIT ) { virtualVal.push(wProdIT); }
 				if( wClaimIT ) { virtualVal.push(wClaimIT); }
 				if( wThirdPartIT ) { virtualVal.push(wThirdPartIT); }
