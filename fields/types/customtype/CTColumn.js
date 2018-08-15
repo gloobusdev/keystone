@@ -85,7 +85,7 @@ var CTColumn = React.createClass({
 				virtualVal = virtualVal.join(', ')
 			}
 		}
-		return value ? (virtualVal ? this.renderVirtualVal(virtualVal) : value) : null;
+		return value ? (this.props.col.virtualPath ? this.renderVirtualVal(virtualVal) : value) : null;
 		//return value ? value.substr(0, 100) : null;
 	},
 	render () {

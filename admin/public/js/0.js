@@ -34,7 +34,7 @@ if(this.props.col.virtualPath){l=r[this.props.col.virtualPath]
 var a=f.default.get(this.props,"col.field.options.modules.values"),n={}
 if(a&&Array.isArray(a)&&a.length>0&&a.forEach(function(e){n[e.value]=e.label}),"module"==this.props.col.virtualPath&&(l=f.default.get(n,l)||l),"recipients"==this.props.col.virtualPath&&(l=l.reduce(function(e,t){return e+(e?", ":"")+t.label},"")),"content.*.independents.indextype"==this.props.col.virtualPath){l=[]
 var o=f.default.get(r,"content.willemotProduction.independents.indextype.type"),u=f.default.get(r,"content.willemotClaims.independents.indextype.type"),s=f.default.get(r,"content.thirdParties.independents.indextype.type")
-o&&l.push(o),u&&l.push(u),s&&l.push(s),l=l.join(", ")}}return t?l?this.renderVirtualVal(l):t:null},render:function(){var e=this.getValue(),t=!(e||!this.props.linkTo)
+o&&l.push(o),u&&l.push(u),s&&l.push(s),l=l.join(", ")}}return t?this.props.col.virtualPath?this.renderVirtualVal(l):t:null},render:function(){var e=this.getValue(),t=!(e||!this.props.linkTo)
 return o.default.createElement(s.default,null,o.default.createElement(d.default,{to:this.props.linkTo,empty:t,padded:!0,interior:!0,field:this.props.col.type},e))}})
 e.exports=c},765:function(e,t,r){"use strict"
 function l(e){return e&&e.__esModule?e:{default:e}}var a=r(1),n=l(a),o=r(29),u=l(o),s=r(30),i=l(s),d=n.default.createClass({displayName:"EmailColumn",propTypes:{col:n.default.PropTypes.object,data:n.default.PropTypes.object},renderValue:function(){var e=this.props.data.fields[this.props.col.path]
