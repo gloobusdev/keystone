@@ -64,9 +64,10 @@ var CTColumn = React.createClass({
 			}
 
 			if ( this.props.col.virtualPath == 'recipients' ) {
-				virtualVal = virtualVal.reduce((sum, current) => {
-					return sum + (sum ? (', ') : '') +current.label
-				}, '');
+				virtualVal = virtualVal && Array.isArray(virtualVal) && virtualVal.length > 0 &&
+					virtualVal.reduce((sum, current) => {
+						return sum + (sum ? (', ') : '') +current.label
+					}, '') || '';
 			}
 
 			if ( this.props.col.virtualPath == 'content.*.independents.indextype' ) {
