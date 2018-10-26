@@ -647,7 +647,7 @@ module.exports = Field.create({
 				{this.renderButtonRowForFillContent(this.insertContentToSubject)}
 				<TinyMce
 					ref="customEditor"
-					onChange={(e) => this.onEditorStateChange({value: e.target.getContent(), nameOfTarget: "subject"})}
+					onChange={(e) => this.onEditorStateChange({value: e.target.getContent({format: 'text'}), nameOfTarget: "subject"})}
 					config={{
 						menubar: false,
 						statusbar: false,
