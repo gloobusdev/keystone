@@ -17,7 +17,7 @@ return f.default.createElement("div",null,f.default.createElement("h3",{"data-th
 function r(e){return e&&e.__esModule?e:{default:e}}function a(e,t){var n=e?e.length:0,r=t?t.length:0
 if(n!==r)return!1
 for(var a=0;a<n;a++)if(e[a]!==t[a])return!1
-return!0}var o=n(237),i=r(o),l=n(19),u=r(l),s=n(143),c=n(1),f=r(c),d=n(209),p=r(d),h=n(174),v=r(h),m=n(3),y=n(51),b=r(y),g=n(1193),E=r(g),j=n(1165),O=r(j),w=n(4),C=r(w),S=n(39),N=r(S)
+return!0}var o=n(237),i=r(o),l=n(19),u=r(l),s=n(144),c=n(1),f=r(c),d=n(209),p=r(d),h=n(142),v=r(h),m=n(3),y=n(51),b=r(y),g=n(1193),E=r(g),j=n(1165),O=r(j),w=n(4),C=r(w),S=n(39),N=r(S)
 e.exports=u.default.create({displayName:"RelationshipField",statics:{type:"Relationship"},getInitialState:function(){return{value:null,createIsOpen:!1}},componentDidMount:function(){this._itemsCache={},this.loadValue(this.props.value)},componentWillReceiveProps:function(e){e.value===this.props.value||e.many&&a(this.props.value,e.value)||this.loadValue(e.value)},shouldCollapse:function(){return this.props.many?this.props.collapse&&!this.props.value.length:this.props.collapse&&!this.props.value},buildFilters:function(){var e=this,t={}
 b.default.forEach(this.props.filters,function(n,r){if(b.default.isString(n)&&":"==n[0]){var a=n.slice(1),o=e.props.values[a]
 if(o)return void(t[r]=o)

@@ -3,6 +3,7 @@ import React, { PropTypes } from 'react';
 import { findDOMNode } from 'react-dom';
 import { FormInput, FormSelect, Button } from 'elemental';
 import ConfirmationDialog from './../../../admin/client/App/shared/ConfirmationDialog';
+import xhr from 'xhr';
 
 import { Editor } from 'react-draft-wysiwyg';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
@@ -74,6 +75,30 @@ module.exports = Field.create({
 	 * When start the module we configure the initial state for everithing.
 	 */
 	getInitialState() {
+		let allRecipientWillemotEmails = {values: []}
+		let schemaRecipientWillemotEmailsPath = this.props && this.props.options &&
+			this.props.options.recipientWillemotEmailsPath || 'email-recipients';
+
+		// get the list of emails for the recipient willemot by keystone api call
+		xhr({
+			url: Keystone.adminPath + '/api/' + schemaRecipientWillemotEmailsPath,
+			responseType: 'json',
+		}, (err, resp, data) => {
+			if (err || !data) return [];
+
+			allRecipientWillemotEmails = data && data.results && data.results.map(
+				(item) => ({value: item.id, label:item.fields.email})
+			) || []
+
+			allRecipientWillemotEmails = {values: allRecipientWillemotEmails}
+			unshifValueIfNotExist(allRecipientWillemotEmails, {value:'', label: 'Please select email address'});
+
+			// update value in the current state of component.
+			this.setState({
+				allRecipientWillemotEmails: allRecipientWillemotEmails
+			});
+		});
+
 		let valueOfState = typeof this.props.values == 'object' && this.props.values.templateContent ?
 		this.props.values.templateContent : '{}';
 
@@ -113,6 +138,7 @@ module.exports = Field.create({
 			currentTabLang: currentTabLang,
 			value: valueOfState,
 			allRecipients: allRecipients,
+			allRecipientWillemotEmails: allRecipientWillemotEmails,
 			allModules: allModules,
 			allLanguages: allLanguages,
 			allVariables: allVariables,
@@ -307,7 +333,6 @@ module.exports = Field.create({
 		const varsWhiteList = this.state.value.allVariables && this.state.value.allVariables.values || [];
 		const allLanguages = this.state.allLanguages || false;
 		const content = this.state.value.content || false;
-		// targetWhiteList
 
 		const {recipients} = this.state.value;
 		let newContent = {};
@@ -444,6 +469,46 @@ module.exports = Field.create({
 		);
 	},
 
+
+
+
+	/* changeMultipleModules(modules) {
+		this.setState({
+			value: { ...this.state.value, ...{module: modules}},
+		});
+		this.updateValue({ module: modules });
+	},
+
+	renderMultipleModuleSelector() {
+		const areVariabels = this.state.allVariables && this.state.allVariables.values &&
+			this.state.allVariables.values.length > 0 &&
+			this.state.allVariables.values.filter((elem)=>(elem.value !== '')).length > 0 || false;
+		const selectedVariablesByTabs = this.fetchSafeEditorValue({nameOfTarget: TARGET_VARS});
+		const modules = this.state.allModules;
+
+		return (
+			<Flex column flex={1} alignItems="stretch" key={"recipientSelectorKey"}>
+				<Flex column alignItems="start">
+					<Flex row>
+						<span className={styles.fieldTitle}>{"Variables"}</span>
+					</Flex>
+					<Flex row>
+						{areVariabels ?
+							(<span className={styles.fieldLabel}>{"Please select variables for this template."}</span>) :
+							(<span className={styles.fieldLabel}>{"No variables slotted for this module."}</span>)
+						}
+					</Flex>
+				</Flex>
+				<ListComposer
+					className={cs(styles.variableComposer, (!areVariabels ? styles.visibleNone : null))}
+					allValues={this.state.allModules}
+					allSelected={selectedVariablesByTabs}
+					onChange={(value) => this.changeMultipleModules(value)}
+				/>
+			</Flex>
+		);
+	}, */
+
 	/**
 	 * Update recipient list in the state and find another active tab if the removed one was the active.
 	 */
@@ -451,8 +516,22 @@ module.exports = Field.create({
 		this.setState({
 			value: { ...this.state.value, ...{recipients: values}}
 		}, () => {
+			if (this.state.value.recipients.filter((item)=>(item.value==='willemot')) == 0) {
+				this.onChangeRecipientWillemotEmails(null)
+			}
 			this.onTabRemainsSetThatActive();
 			this.onTabClearDataOfDeletedTabs();
+		});
+	},
+
+	/**
+	 * Update recipient list in the state and find another active tab if the removed one was the active.
+	 */
+	onChangeRecipientWillemotEmails(values) {
+		this.setState({
+			value: { ...this.state.value, ...{recipientWillemotEmails: values}}
+		}, () => {
+			// nothing to do here maybe
 		});
 	},
 
@@ -647,7 +726,7 @@ module.exports = Field.create({
 				{this.renderButtonRowForFillContent(this.insertContentToSubject)}
 				<TinyMce
 					ref="customEditor"
-					onChange={(e) => this.onEditorStateChange({value: e.target.getContent({format: 'text'}), nameOfTarget: "subject"})}
+					onChange={(e) => this.onEditorStateChange({value: e.target.getContent({format : 'text'}), nameOfTarget: "subject"})}
 					config={{
 						menubar: false,
 						statusbar: false,
@@ -788,8 +867,12 @@ module.exports = Field.create({
 		const { currentTabRecipient, currentTabLang } = this.state;
 		const { editorLoaded } = this.state;
 		const { recipients } = this.state.value || {recipients: []};
+
 		let areEditorsVisible = !_.isEmpty(recipients) && _.isArray(recipients) && recipients.length > 0;
 		areEditorsVisible = areEditorsVisible && !!nesProp.get(this.state, ['value','module'].join('.'));
+
+		let isVisibleTheWillemotRecipientEmailComposer = areEditorsVisible &&
+			(recipients.filter((item)=>(item.value === 'willemot')).length > 0)
 
 		return (
 			<div>
@@ -804,6 +887,8 @@ module.exports = Field.create({
 				<Flex column flex={1} alignItems="stretch" key={"moduleSelectorKey"}>
 					{this.renderModuleSelector()}
 				</Flex>
+
+
 				<Flex column alignItems="start">
 					<Flex row>
 						<span className={styles.fieldTitle}>{"Recipients"}</span>
@@ -819,6 +904,27 @@ module.exports = Field.create({
 						onChange={this.onChangeRecipients}
 						options={{
 							handleDefault: true
+						}}
+					/>
+				</Flex>
+
+				<Flex column alignItems="start"
+					className={cs((!isVisibleTheWillemotRecipientEmailComposer ? styles.visibleNone : null))}>
+					<Flex row>
+						<span className={styles.fieldTitle}>{"Recipient: Willemot"}</span>
+					</Flex>
+					<Flex row>
+						<span className={styles.fieldLabel}>{"Please select email addresses for the \"Willemot\" recipient."}</span>
+					</Flex>
+				</Flex>
+				<Flex column flex={1} alignItems="stretch" key={"recipientWillemotEmailsKey"}
+					className={cs((!isVisibleTheWillemotRecipientEmailComposer ? styles.visibleNone : null))}>
+					<ListComposer
+						allValues={this.state.allRecipientWillemotEmails || []}
+						allSelected={this.state.value.recipientWillemotEmails || []}
+						onChange={this.onChangeRecipientWillemotEmails}
+						options={{
+							handleDefault: false
 						}}
 					/>
 				</Flex>
