@@ -777,7 +777,7 @@ module.exports = Field.create({
 						menubar: false,
 						statusbar: false,
 						height : 200,
-						toolbar: 'undo redo | bold italic underline strikethrough | alignleft aligncenter alignright | styleselect',
+						toolbar: 'undo redo | bold italic underline strikethrough | alignleft aligncenter alignright | styleselect | formatselect fontselect fontsizeselect',
 						setup: (editor) => {
 							theBodyEditor = !theBodyEditor ? editor : theBodyEditor;
 						}
