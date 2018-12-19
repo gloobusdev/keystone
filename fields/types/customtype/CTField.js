@@ -669,7 +669,10 @@ module.exports = Field.create({
 		switch(nameOfTarget) {
 			case TARGET_VARS: return []; break;
 			case TARGET_SUBJECT:
-			case TARGET_BODY: return ''; break;
+			case TARGET_BODY: return '<div class="templateBasicStyleAuto" style="font-size: 11px; '+
+				'font-family: Arial,-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,\'Helvetica Neue\',\'times new roman\',sans-serif;">'+
+				'</div>';
+				break;
 			default: return null;
 		}
 		return null;
@@ -733,7 +736,15 @@ module.exports = Field.create({
 						height : 40,
 						min_height: 40,
 						toolbar: 'undo redo',
-						forced_root_block: '',
+
+						force_br_newlines : false,
+						force_p_newlines : false,
+						forced_root_block : '',
+						relative_urls : false,
+						remove_script_host : false,
+						allow_script_urls: true,
+						convert_urls : true,
+
 						formats: {
 							removeformat: [
 							  {selector: '*', remove : 'all', split : true, expand : true, block_expand: true, deep : true},
@@ -777,6 +788,17 @@ module.exports = Field.create({
 						menubar: false,
 						statusbar: false,
 						height : 200,
+
+						force_br_newlines : false,
+						force_p_newlines : false,
+						forced_root_block : '',
+						relative_urls : false,
+						remove_script_host : false,
+						allow_script_urls: true,
+						convert_urls : true,
+
+						extended_valid_elements: 'div[class|style]',
+
 						toolbar: 'undo redo | bold italic underline strikethrough | alignleft aligncenter alignright | styleselect | formatselect fontselect fontsizeselect',
 						setup: (editor) => {
 							theBodyEditor = !theBodyEditor ? editor : theBodyEditor;
