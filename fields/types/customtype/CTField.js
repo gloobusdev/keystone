@@ -669,7 +669,7 @@ module.exports = Field.create({
 		switch(nameOfTarget) {
 			case TARGET_VARS: return []; break;
 			case TARGET_SUBJECT:
-			case TARGET_BODY: return '<div class="templateBasicStyleAuto" style="font-size: 11px; '+
+			case TARGET_BODY: return '<div class="templateBasicStyleAuto" style="font-size: 11pt; '+
 				'font-family: Arial,-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,\'Helvetica Neue\',\'times new roman\',sans-serif;">'+
 				'</div>';
 				break;
@@ -679,8 +679,8 @@ module.exports = Field.create({
 	},
 
 	/**
-	 * Gettin value from state to the current combination of the recipient, language and template part.
-	 * This is neccessary for galvanic isolation of values addresses
+	 * Get value from state to the current combination of the recipient, language and template part.
+	 * This is necessary for galvanic isolation of values addresses
 	 * @param {*} param0
 	 */
 	fetchSafeEditorValue({nameOfTarget}) {
