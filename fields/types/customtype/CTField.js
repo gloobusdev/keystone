@@ -93,6 +93,14 @@ module.exports = Field.create({
 			allRecipientWillemotEmails = {values: allRecipientWillemotEmails}
 			unshifValueIfNotExist(allRecipientWillemotEmails, {value:'', label: 'Please select email address'});
 
+			// this will replace the labels for the first parameter, in the array elements what is given by address
+			this.updateLabelAndValueByRelationOfSelectedEmails(
+				this.state.value.recipientWillemotEmails,
+				allRecipientWillemotEmails.values
+			)
+
+			this.setState({value: {...this.state.value}});
+
 			// update value in the current state of component.
 			this.setState({
 				allRecipientWillemotEmails: allRecipientWillemotEmails
@@ -145,6 +153,44 @@ module.exports = Field.create({
 			confirmationDialog: null,
 			editorLoaded,
 		};
+	},
+
+	/**
+	 * This function will update the labels for the first parameter by the "relationRecords" parameter
+	 * and return the updated value - label pairs
+	 * !!!IMPORTANT: the records what not exists in relation records will removed from the result.
+	 * @param {array} updateThis - each element is an object contains "value", "label" property pairs
+	 * @param {array} relationRecords - each element is an object contains "value", "label" property pairs
+	 */
+	updateLabelAndValueByRelationOfSelectedEmails (updateThis, relationRecords) {
+		if (!updateThis || updateThis.length == 0 || !relationRecords || relationRecords.length == 0) {
+			return updateThis
+		}
+
+		let deleteThisOnes = []
+
+		updateThis.forEach((updateItem, updateItemKey) => {
+			let foundItem = false
+			relationRecords.forEach((relationItem) => {
+				if (relationItem.value == updateItem.value) {
+					foundItem = relationItem
+				}
+			})
+
+			if (foundItem) {
+				updateThis[updateItemKey].label = foundItem.label
+			} else {
+				deleteThisOnes.push(updateItemKey)
+			}
+		})
+
+		if (deleteThisOnes.length > 0) {
+			// sort descending the indexes to correct splice from target array.
+			deleteThisOnes = deleteThisOnes.sort((a, b) => {return b-a});
+			deleteThisOnes.forEach((itemIndex) => {
+				updateThis.splice(itemIndex, 1);
+			})
+		}
 	},
 
 	componentWillReceiveProps: function (nextProps) {
@@ -221,14 +267,15 @@ module.exports = Field.create({
 	 */
 	onEditorStateChange({value, nameOfTarget}) {
 		// preparing initial values from state to save the editors value
-		const content = this.state.value.content || {};
+		const contentOriginal = this.state.value.content || {};
+		let content = JSON.parse(JSON.stringify(contentOriginal));
 		const {currentTabRecipient, currentTabLang} = this.state;
 
 		// finding indexes to save the editors contents, on each language and recipent intersects
 		const recipientIndex = currentTabRecipient && currentTabRecipient.value || false;
 		const languageIndex = currentTabLang && currentTabLang.value || false;
 
-		// we have no valid conditions tyo save the editors value!!!
+		// we have no valid conditions to save the editors value!!!
 		if( !currentTabRecipient || !currentTabLang || !nameOfTarget ||
 			targetWhiteList.indexOf(nameOfTarget) === -1 ) {
 			return false;
@@ -261,9 +308,9 @@ module.exports = Field.create({
 	 * Update the full content of the wysiwyg editor, used selected tabs.
 	 */
 	updateValuesInEditorOnChangeSomething() {
-		const subject = this.fetchSafeEditorValue({nameOfTarget: TARGET_SUBJECT});
+		const subject = this.fetchSafeEditorValue(TARGET_SUBJECT);
 		this.setContentToSubject(subject);
-		const body = this.fetchSafeEditorValue({nameOfTarget: TARGET_BODY});
+		const body = this.fetchSafeEditorValue(TARGET_BODY);
 		this.setContentToBody(body);
 	},
 
@@ -469,9 +516,6 @@ module.exports = Field.create({
 		);
 	},
 
-
-
-
 	/* changeMultipleModules(modules) {
 		this.setState({
 			value: { ...this.state.value, ...{module: modules}},
@@ -483,7 +527,7 @@ module.exports = Field.create({
 		const areVariabels = this.state.allVariables && this.state.allVariables.values &&
 			this.state.allVariables.values.length > 0 &&
 			this.state.allVariables.values.filter((elem)=>(elem.value !== '')).length > 0 || false;
-		const selectedVariablesByTabs = this.fetchSafeEditorValue({nameOfTarget: TARGET_VARS});
+		const selectedVariablesByTabs = this.fetchSafeEditorValue(TARGET_VARS);
 		const modules = this.state.allModules;
 
 		return (
@@ -558,7 +602,7 @@ module.exports = Field.create({
 		const areVariabels = this.state.allVariables && this.state.allVariables.values &&
 			this.state.allVariables.values.length > 0 &&
 			this.state.allVariables.values.filter((elem)=>(elem.value !== '')).length > 0 || false;
-		const selectedVariablesByTabs = this.fetchSafeEditorValue({nameOfTarget: TARGET_VARS});
+		const selectedVariablesByTabs = this.fetchSafeEditorValue(TARGET_VARS);
 
 		return (
 			<Flex column flex={1} alignItems="stretch" key={"recipientSelectorKey"}>
@@ -636,7 +680,7 @@ module.exports = Field.create({
 	 * This function will render a row of buttons to use for filling an editor.
 	 */
 	renderButtonRowForFillContent(functionForClick) {
-		const selectedVariablesByTabs = this.fetchSafeEditorValue({nameOfTarget: TARGET_VARS});
+		const selectedVariablesByTabs = this.fetchSafeEditorValue(TARGET_VARS);
 
 		return (
 			<Flex column flex={1} alignItems="stretch">
@@ -683,7 +727,7 @@ module.exports = Field.create({
 	 * This is necessary for galvanic isolation of values addresses
 	 * @param {*} param0
 	 */
-	fetchSafeEditorValue({nameOfTarget}) {
+	fetchSafeEditorValue(nameOfTarget) {
 		const content = this.state.value.content || {};
 		const { currentTabRecipient, currentTabLang } = this.state;
 		const curRecValue = currentTabRecipient.value || false;
@@ -699,6 +743,7 @@ module.exports = Field.create({
 		}
 
 		let route = [ curRecValue, curLangValue, nameOfTarget].join('.');
+
 		if ( nameOfTarget == TARGET_VARS || nameOfTarget == TARGET_INDEXTYPE ) {
 			route = [ curRecValue, INDEPENDENTS, nameOfTarget].join('.');
 		}
@@ -713,7 +758,7 @@ module.exports = Field.create({
 	 * Rendering the subject editor of template
 	 */
 	renderSubjectEditor() {
-		const editorState = this.fetchSafeEditorValue({nameOfTarget: TARGET_SUBJECT});
+		const editorState = this.fetchSafeEditorValue(TARGET_SUBJECT);
 
 		return (
 			<div>
@@ -766,7 +811,7 @@ module.exports = Field.create({
 	 * Rendering the emailbody editor of template
 	 */
 	renderBodyEditor() {
-		const editorState = this.fetchSafeEditorValue({nameOfTarget: TARGET_BODY});
+		const editorState = this.fetchSafeEditorValue(TARGET_BODY);
 
 		return (
 			<div>
