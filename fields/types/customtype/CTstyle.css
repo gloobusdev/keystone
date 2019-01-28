@@ -68,6 +68,9 @@
 :local(.tabContent.visibleNone) {
 	display: none;
 }
+:local(.visibleNone) {
+	display: none!important;
+}
 :local(.tabContent.languageTabContent) {
 	background: linear-gradient(to bottom, #f8f8f8 0%, #f8f8f8 100%) #fcfcfc;
 }

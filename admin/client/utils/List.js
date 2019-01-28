@@ -81,8 +81,10 @@ const List = function (options) {
 	// TODO these options are possibly unused
 	assign(this, options);
 	this.columns = getColumns(this);
+
 	this.expandedDefaultColumns = this.expandColumns(this.defaultColumns);
-	this.defaultColumnPaths = this.expandedDefaultColumns.map(i => i.path).join(',');
+	//this.defaultColumnPaths = this.expandedDefaultColumns.map(i => i.path).join(',');
+	this.defaultColumnPaths = this.expandedDefaultColumns.map(i => (i.path + (!!i.virtualPath ? ('.'+i.virtualPath):''))).join(',');
 };
 
 /**
@@ -169,17 +171,28 @@ List.prototype.expandColumns = function (input) {
 		const split = i.split('|');
 		let path = split[0];
 		let width = split[1];
+		let virtualPath = split[2];
+		let virtualLabel = split[3];
 		if (path === '__name__') {
 			path = this.namePath;
 		}
-		const field = this.fields[path];
+
+		let field = this.fields[path];
+		let firsthPart = path
+		if ( virtualPath ) {
+			firsthPart = path.split('.')
+			if ( firsthPart[0] ) {
+				field = this.fields[firsthPart[0]];
+			}
+		}
+
 		if (!field) {
 			// TODO: Support arbitary document paths
 			if (!this.hidden) {
 				if (path === this.namePath) {
 					console.warn(`List ${this.key} did not specify any default columns or a name field`);
 				} else {
-					console.warn(`List ${this.key} specified an invalid default column: ${path}`);
+					console.warn(`List ${this.key} specified an invalid default column: ${path}. Virtual path: ${virtualPath}`);
 				}
 			}
 			return;
@@ -189,10 +202,12 @@ List.prototype.expandColumns = function (input) {
 		}
 		return {
 			field: field,
-			label: field.label,
-			path: field.path,
-			type: field.type,
+			label: field && (virtualLabel ? virtualLabel : field.label),
+			path: field && field.path,
+			type: field && field.type,
 			width: width,
+			virtualPath: virtualPath,
+			virtualLabel: virtualLabel,
 		};
 	}).filter(truthy);
 	if (!nameIncluded) {

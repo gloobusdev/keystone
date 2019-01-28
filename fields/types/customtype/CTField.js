@@ -3,6 +3,7 @@ import React, { PropTypes } from 'react';
 import { findDOMNode } from 'react-dom';
 import { FormInput, FormSelect, Button } from 'elemental';
 import ConfirmationDialog from './../../../admin/client/App/shared/ConfirmationDialog';
+import xhr from 'xhr';
 
 import { Editor } from 'react-draft-wysiwyg';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
@@ -74,6 +75,38 @@ module.exports = Field.create({
 	 * When start the module we configure the initial state for everithing.
 	 */
 	getInitialState() {
+		let allRecipientWillemotEmails = {values: []}
+		let schemaRecipientWillemotEmailsPath = this.props && this.props.options &&
+			this.props.options.recipientWillemotEmailsPath || 'email-recipients';
+
+		// get the list of emails for the recipient willemot by keystone api call
+		xhr({
+			url: Keystone.adminPath + '/api/' + schemaRecipientWillemotEmailsPath,
+			responseType: 'json',
+		}, (err, resp, data) => {
+			if (err || !data) return [];
+
+			allRecipientWillemotEmails = data && data.results && data.results.map(
+				(item) => ({value: item.id, label:item.fields.email})
+			) || []
+
+			allRecipientWillemotEmails = {values: allRecipientWillemotEmails}
+			unshifValueIfNotExist(allRecipientWillemotEmails, {value:'', label: 'Please select email address'});
+
+			// this will replace the labels for the first parameter, in the array elements what is given by address
+			this.updateLabelAndValueByRelationOfSelectedEmails(
+				this.state.value.recipientWillemotEmails,
+				allRecipientWillemotEmails.values
+			)
+
+			this.setState({value: {...this.state.value}});
+
+			// update value in the current state of component.
+			this.setState({
+				allRecipientWillemotEmails: allRecipientWillemotEmails
+			});
+		});
+
 		let valueOfState = typeof this.props.values == 'object' && this.props.values.templateContent ?
 		this.props.values.templateContent : '{}';
 
@@ -113,12 +146,51 @@ module.exports = Field.create({
 			currentTabLang: currentTabLang,
 			value: valueOfState,
 			allRecipients: allRecipients,
+			allRecipientWillemotEmails: allRecipientWillemotEmails,
 			allModules: allModules,
 			allLanguages: allLanguages,
 			allVariables: allVariables,
 			confirmationDialog: null,
 			editorLoaded,
 		};
+	},
+
+	/**
+	 * This function will update the labels for the first parameter by the "relationRecords" parameter
+	 * and return the updated value - label pairs
+	 * !!!IMPORTANT: the records what not exists in relation records will removed from the result.
+	 * @param {array} updateThis - each element is an object contains "value", "label" property pairs
+	 * @param {array} relationRecords - each element is an object contains "value", "label" property pairs
+	 */
+	updateLabelAndValueByRelationOfSelectedEmails (updateThis, relationRecords) {
+		if (!updateThis || updateThis.length == 0 || !relationRecords || relationRecords.length == 0) {
+			return updateThis
+		}
+
+		let deleteThisOnes = []
+
+		updateThis.forEach((updateItem, updateItemKey) => {
+			let foundItem = false
+			relationRecords.forEach((relationItem) => {
+				if (relationItem.value == updateItem.value) {
+					foundItem = relationItem
+				}
+			})
+
+			if (foundItem) {
+				updateThis[updateItemKey].label = foundItem.label
+			} else {
+				deleteThisOnes.push(updateItemKey)
+			}
+		})
+
+		if (deleteThisOnes.length > 0) {
+			// sort descending the indexes to correct splice from target array.
+			deleteThisOnes = deleteThisOnes.sort((a, b) => {return b-a});
+			deleteThisOnes.forEach((itemIndex) => {
+				updateThis.splice(itemIndex, 1);
+			})
+		}
 	},
 
 	componentWillReceiveProps: function (nextProps) {
@@ -195,14 +267,15 @@ module.exports = Field.create({
 	 */
 	onEditorStateChange({value, nameOfTarget}) {
 		// preparing initial values from state to save the editors value
-		const content = this.state.value.content || {};
+		const contentOriginal = this.state.value.content || {};
+		let content = JSON.parse(JSON.stringify(contentOriginal));
 		const {currentTabRecipient, currentTabLang} = this.state;
 
 		// finding indexes to save the editors contents, on each language and recipent intersects
 		const recipientIndex = currentTabRecipient && currentTabRecipient.value || false;
 		const languageIndex = currentTabLang && currentTabLang.value || false;
 
-		// we have no valid conditions tyo save the editors value!!!
+		// we have no valid conditions to save the editors value!!!
 		if( !currentTabRecipient || !currentTabLang || !nameOfTarget ||
 			targetWhiteList.indexOf(nameOfTarget) === -1 ) {
 			return false;
@@ -235,9 +308,9 @@ module.exports = Field.create({
 	 * Update the full content of the wysiwyg editor, used selected tabs.
 	 */
 	updateValuesInEditorOnChangeSomething() {
-		const subject = this.fetchSafeEditorValue({nameOfTarget: TARGET_SUBJECT});
+		const subject = this.fetchSafeEditorValue(TARGET_SUBJECT);
 		this.setContentToSubject(subject);
-		const body = this.fetchSafeEditorValue({nameOfTarget: TARGET_BODY});
+		const body = this.fetchSafeEditorValue(TARGET_BODY);
 		this.setContentToBody(body);
 	},
 
@@ -307,7 +380,6 @@ module.exports = Field.create({
 		const varsWhiteList = this.state.value.allVariables && this.state.value.allVariables.values || [];
 		const allLanguages = this.state.allLanguages || false;
 		const content = this.state.value.content || false;
-		// targetWhiteList
 
 		const {recipients} = this.state.value;
 		let newContent = {};
@@ -444,6 +516,43 @@ module.exports = Field.create({
 		);
 	},
 
+	/* changeMultipleModules(modules) {
+		this.setState({
+			value: { ...this.state.value, ...{module: modules}},
+		});
+		this.updateValue({ module: modules });
+	},
+
+	renderMultipleModuleSelector() {
+		const areVariabels = this.state.allVariables && this.state.allVariables.values &&
+			this.state.allVariables.values.length > 0 &&
+			this.state.allVariables.values.filter((elem)=>(elem.value !== '')).length > 0 || false;
+		const selectedVariablesByTabs = this.fetchSafeEditorValue(TARGET_VARS);
+		const modules = this.state.allModules;
+
+		return (
+			<Flex column flex={1} alignItems="stretch" key={"recipientSelectorKey"}>
+				<Flex column alignItems="start">
+					<Flex row>
+						<span className={styles.fieldTitle}>{"Variables"}</span>
+					</Flex>
+					<Flex row>
+						{areVariabels ?
+							(<span className={styles.fieldLabel}>{"Please select variables for this template."}</span>) :
+							(<span className={styles.fieldLabel}>{"No variables slotted for this module."}</span>)
+						}
+					</Flex>
+				</Flex>
+				<ListComposer
+					className={cs(styles.variableComposer, (!areVariabels ? styles.visibleNone : null))}
+					allValues={this.state.allModules}
+					allSelected={selectedVariablesByTabs}
+					onChange={(value) => this.changeMultipleModules(value)}
+				/>
+			</Flex>
+		);
+	}, */
+
 	/**
 	 * Update recipient list in the state and find another active tab if the removed one was the active.
 	 */
@@ -451,8 +560,22 @@ module.exports = Field.create({
 		this.setState({
 			value: { ...this.state.value, ...{recipients: values}}
 		}, () => {
+			if (this.state.value.recipients.filter((item)=>(item.value==='willemot')) == 0) {
+				this.onChangeRecipientWillemotEmails(null)
+			}
 			this.onTabRemainsSetThatActive();
 			this.onTabClearDataOfDeletedTabs();
+		});
+	},
+
+	/**
+	 * Update recipient list in the state and find another active tab if the removed one was the active.
+	 */
+	onChangeRecipientWillemotEmails(values) {
+		this.setState({
+			value: { ...this.state.value, ...{recipientWillemotEmails: values}}
+		}, () => {
+			// nothing to do here maybe
 		});
 	},
 
@@ -479,7 +602,7 @@ module.exports = Field.create({
 		const areVariabels = this.state.allVariables && this.state.allVariables.values &&
 			this.state.allVariables.values.length > 0 &&
 			this.state.allVariables.values.filter((elem)=>(elem.value !== '')).length > 0 || false;
-		const selectedVariablesByTabs = this.fetchSafeEditorValue({nameOfTarget: TARGET_VARS});
+		const selectedVariablesByTabs = this.fetchSafeEditorValue(TARGET_VARS);
 
 		return (
 			<Flex column flex={1} alignItems="stretch" key={"recipientSelectorKey"}>
@@ -513,7 +636,12 @@ module.exports = Field.create({
 	 * @param {*} value
 	 */
 	insertContentToSubject(ev, value) {
-		theSubjectEditor && theSubjectEditor.insertContent('{{'+value+'}}');
+		if (theSubjectEditor) {
+			// three step insert because the TinyMCE skip to fire onchange when you do the first insert.
+			theSubjectEditor.insertContent('{{');
+			theSubjectEditor.insertContent(value);
+			theSubjectEditor.insertContent('}}');
+		}
 	},
 
 	/**
@@ -522,7 +650,12 @@ module.exports = Field.create({
 	 * @param {*} value
 	 */
 	insertContentToBody(ev, value) {
-		theBodyEditor && theBodyEditor.insertContent('{{'+value+'}}');
+		// three step insert because the TinyMCE skip to fire onchange when you do the first insert.
+		if (theBodyEditor) {
+			theBodyEditor.insertContent('{{');
+			theBodyEditor.insertContent(value);
+			theBodyEditor.insertContent('}}');
+		}
 	},
 
 	/**
@@ -547,7 +680,7 @@ module.exports = Field.create({
 	 * This function will render a row of buttons to use for filling an editor.
 	 */
 	renderButtonRowForFillContent(functionForClick) {
-		const selectedVariablesByTabs = this.fetchSafeEditorValue({nameOfTarget: TARGET_VARS});
+		const selectedVariablesByTabs = this.fetchSafeEditorValue(TARGET_VARS);
 
 		return (
 			<Flex column flex={1} alignItems="stretch">
@@ -580,18 +713,21 @@ module.exports = Field.create({
 		switch(nameOfTarget) {
 			case TARGET_VARS: return []; break;
 			case TARGET_SUBJECT:
-			case TARGET_BODY: return ''; break;
+			case TARGET_BODY: return '<div class="templateBasicStyleAuto" style="font-size: 11pt; '+
+				'font-family: Arial,-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,\'Helvetica Neue\',\'times new roman\',sans-serif;">'+
+				'</div>';
+				break;
 			default: return null;
 		}
 		return null;
 	},
 
 	/**
-	 * Gettin value from state to the current combination of the recipient, language and template part.
-	 * This is neccessary for galvanic isolation of values addresses
+	 * Get value from state to the current combination of the recipient, language and template part.
+	 * This is necessary for galvanic isolation of values addresses
 	 * @param {*} param0
 	 */
-	fetchSafeEditorValue({nameOfTarget}) {
+	fetchSafeEditorValue(nameOfTarget) {
 		const content = this.state.value.content || {};
 		const { currentTabRecipient, currentTabLang } = this.state;
 		const curRecValue = currentTabRecipient.value || false;
@@ -607,6 +743,7 @@ module.exports = Field.create({
 		}
 
 		let route = [ curRecValue, curLangValue, nameOfTarget].join('.');
+
 		if ( nameOfTarget == TARGET_VARS || nameOfTarget == TARGET_INDEXTYPE ) {
 			route = [ curRecValue, INDEPENDENTS, nameOfTarget].join('.');
 		}
@@ -621,7 +758,7 @@ module.exports = Field.create({
 	 * Rendering the subject editor of template
 	 */
 	renderSubjectEditor() {
-		const editorState = this.fetchSafeEditorValue({nameOfTarget: TARGET_SUBJECT});
+		const editorState = this.fetchSafeEditorValue(TARGET_SUBJECT);
 
 		return (
 			<div>
@@ -637,14 +774,22 @@ module.exports = Field.create({
 				{this.renderButtonRowForFillContent(this.insertContentToSubject)}
 				<TinyMce
 					ref="customEditor"
-					onChange={(e) => this.onEditorStateChange({value: e.target.getContent(), nameOfTarget: "subject"})}
+					onChange={(e) => this.onEditorStateChange({value: e.target.getContent({format : 'text'}), nameOfTarget: "subject"})}
 					config={{
 						menubar: false,
 						statusbar: false,
 						height : 40,
 						min_height: 40,
 						toolbar: 'undo redo',
-						forced_root_block: '',
+
+						force_br_newlines : false,
+						force_p_newlines : false,
+						forced_root_block : '',
+						relative_urls : false,
+						remove_script_host : false,
+						allow_script_urls: true,
+						convert_urls : true,
+
 						formats: {
 							removeformat: [
 							  {selector: '*', remove : 'all', split : true, expand : true, block_expand: true, deep : true},
@@ -666,7 +811,7 @@ module.exports = Field.create({
 	 * Rendering the emailbody editor of template
 	 */
 	renderBodyEditor() {
-		const editorState = this.fetchSafeEditorValue({nameOfTarget: TARGET_BODY});
+		const editorState = this.fetchSafeEditorValue(TARGET_BODY);
 
 		return (
 			<div>
@@ -688,7 +833,18 @@ module.exports = Field.create({
 						menubar: false,
 						statusbar: false,
 						height : 200,
-						toolbar: 'undo redo | bold italic underline strikethrough | alignleft aligncenter alignright | styleselect',
+
+						force_br_newlines : false,
+						force_p_newlines : false,
+						forced_root_block : '',
+						relative_urls : false,
+						remove_script_host : false,
+						allow_script_urls: true,
+						convert_urls : true,
+
+						extended_valid_elements: 'div[class|style]',
+
+						toolbar: 'undo redo | bold italic underline strikethrough | alignleft aligncenter alignright | styleselect | formatselect fontselect fontsizeselect',
 						setup: (editor) => {
 							theBodyEditor = !theBodyEditor ? editor : theBodyEditor;
 						}
@@ -778,8 +934,12 @@ module.exports = Field.create({
 		const { currentTabRecipient, currentTabLang } = this.state;
 		const { editorLoaded } = this.state;
 		const { recipients } = this.state.value || {recipients: []};
+
 		let areEditorsVisible = !_.isEmpty(recipients) && _.isArray(recipients) && recipients.length > 0;
 		areEditorsVisible = areEditorsVisible && !!nesProp.get(this.state, ['value','module'].join('.'));
+
+		let isVisibleTheWillemotRecipientEmailComposer = areEditorsVisible &&
+			(recipients.filter((item)=>(item.value === 'willemot')).length > 0)
 
 		return (
 			<div>
@@ -794,12 +954,14 @@ module.exports = Field.create({
 				<Flex column flex={1} alignItems="stretch" key={"moduleSelectorKey"}>
 					{this.renderModuleSelector()}
 				</Flex>
+
+
 				<Flex column alignItems="start">
 					<Flex row>
 						<span className={styles.fieldTitle}>{"Recipients"}</span>
 					</Flex>
 					<Flex row>
-						<span className={styles.fieldLabel}>{"Please select recipients for this template."}</span>
+						<span className={styles.fieldLabel}>{"Please select recipients for this template. You can pin the default recipient of the template."}</span>
 					</Flex>
 				</Flex>
 				<Flex column flex={1} alignItems="stretch" key={"recipientSelectorKey"}>
@@ -809,6 +971,27 @@ module.exports = Field.create({
 						onChange={this.onChangeRecipients}
 						options={{
 							handleDefault: true
+						}}
+					/>
+				</Flex>
+
+				<Flex column alignItems="start"
+					className={cs((!isVisibleTheWillemotRecipientEmailComposer ? styles.visibleNone : null))}>
+					<Flex row>
+						<span className={styles.fieldTitle}>{"Recipient: Willemot"}</span>
+					</Flex>
+					<Flex row>
+						<span className={styles.fieldLabel}>{"Please select email addresses for the \"Willemot\" recipient."}</span>
+					</Flex>
+				</Flex>
+				<Flex column flex={1} alignItems="stretch" key={"recipientWillemotEmailsKey"}
+					className={cs((!isVisibleTheWillemotRecipientEmailComposer ? styles.visibleNone : null))}>
+					<ListComposer
+						allValues={this.state.allRecipientWillemotEmails || []}
+						allSelected={this.state.value.recipientWillemotEmails || []}
+						onChange={this.onChangeRecipientWillemotEmails}
+						options={{
+							handleDefault: false
 						}}
 					/>
 				</Flex>
@@ -873,7 +1056,7 @@ module.exports = Field.create({
 	 */
 	renderValue () {
 		return this.props.value ? (
-			<FormInput noedit href={'mailto:' + this.props.value}>{this.props.value}</FormInput>
+			<FormInput noedit>{this.props.value}</FormInput>
 		) : (
 			<FormInput noedit>(not set)</FormInput>
 		);
