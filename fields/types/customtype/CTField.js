@@ -713,8 +713,7 @@ module.exports = Field.create({
 		switch(nameOfTarget) {
 			case TARGET_VARS: return []; break;
 			case TARGET_SUBJECT:
-			case TARGET_BODY: return '<div class="templateBasicStyleAuto" style="font-size: 11pt; '+
-				'font-family: Arial,-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,\'Helvetica Neue\',\'times new roman\',sans-serif;">'+
+			case TARGET_BODY: return '<div class="templateBasicStyleAuto" style="font-size: 11pt; font-family: Arial;">'+
 				'</div>';
 				break;
 			default: return null;
@@ -844,9 +843,14 @@ module.exports = Field.create({
 
 						extended_valid_elements: 'div[class|style]',
 
-						toolbar: 'undo redo | bold italic underline strikethrough | alignleft aligncenter alignright | styleselect | formatselect fontselect fontsizeselect',
+						plugins: 'code',
+						toolbar: 'undo redo | bold italic underline strikethrough | alignleft aligncenter alignright | styleselect | formatselect fontselect fontsizeselect | code',
 						setup: (editor) => {
 							theBodyEditor = !theBodyEditor ? editor : theBodyEditor;
+							editor.on('init', function() {
+								this.execCommand("fontName", false, "Arial");
+								this.execCommand("fontSize", false, "11pt");
+							});
 						}
 					}}
 					content={editorState}
