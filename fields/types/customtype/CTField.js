@@ -18,7 +18,7 @@ import $script from 'scriptjs';
 import nesProp from 'nested-property';
 
 import ListComposer from './ListComposer';
-import TabRow from './TabRow';
+import TabRow from '../TabRow';
 
 /**
  * This function will insert a value to the begining of the array if not exist with the same value
