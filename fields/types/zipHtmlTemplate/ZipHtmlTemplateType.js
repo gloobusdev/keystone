@@ -124,6 +124,7 @@ zipHtmlTemplate.prototype.upload = function (item, file, languageIndex, callback
 					var fullHtmlFilePath =  fullPathTargetDir + pathModule.sep + zipEntry.entryName;
 					var fullPdfFilePath = fullHtmlFilePath.split('.').slice(0,-1)+'.pdf';
 					relativePdfFilePath = relativeHtmlFilePath.split('.').slice(0,-1)+'.pdf';
+					item.set(schemaPathForPdf+"."+languageIndex, relativePdfFilePath);
 
 					// get url to the file
 					var accessUrl = field.options.options.publicAccessUrlPrefix + relativeHtmlFilePath
@@ -139,7 +140,6 @@ zipHtmlTemplate.prototype.upload = function (item, file, languageIndex, callback
 			})
 		})
 
-		item.set(schemaPathForPdf+"."+languageIndex, relativePdfFilePath);
 		item.set(schemaPathForZip+"."+languageIndex, result.filename);
 		item.set(field.path, result);
 		callback(null, result);
@@ -161,12 +161,35 @@ zipHtmlTemplate.prototype.reset = function (item) {
  * Deletes the stored file and resets the field value
  */
 // TODO: Should we accept a callback here? Seems like a good idea.
-zipHtmlTemplate.prototype.remove = function (item) {
+zipHtmlTemplate.prototype.remove = function (item, index, callback) {
+	var prePath = this.path.split('.').slice(0,-1).join('.')
+	var fileName = item.get( prePath + ".zipPath." + index )
 
-// TODO remove the zip, html pdf
+	// remove files
+	this.storage.removeFile({filename: fileName}, () => {callback()});
+	// TODO files in subdirectory remove not working because sanitize
+	this.storage.removeFile({filename: item.get( prePath + ".htmlPath." + index )}, () => {});
+	this.storage.removeFile({filename: item.get( prePath + ".pdfPath." +index )}, () => {});
 
-	this.storage.removeFile(item.get(this.path));
-	this.reset();
+	// create folder name
+	var fileNameNoExt = fileName.split('.').slice(0, -1).join('.')
+	var fileNameNoExtCapitalized = fileNameNoExt.charAt(0).toUpperCase() + fileNameNoExt.slice(1)
+	var extractToFolderName = "Template"+fileNameNoExtCapitalized
+
+	// TODO directory remove not working because sanitize of file paths with subdirectories.
+	// remove folder also
+	this.storage.removeFile({filename: extractToFolderName}, () => {});
+
+	// schema object paths to save the physical path of files
+	var schemaPathForHtml = prePath+".htmlPath."+index;
+	var schemaPathForPdf = prePath+".pdfPath."+index;
+	var schemaPathForZip = prePath+".zipPath."+index;
+
+	item.set(schemaPathForHtml, "")
+	item.set(schemaPathForPdf, "")
+	item.set(schemaPathForZip, "")
+
+	//this.reset(item);
 };
 
 /**
@@ -196,7 +219,7 @@ function validateInput (value) {
 	// undefined, null and empty values are always valid
 	if (value === undefined || value === null || value === '') return true;
 	// If a string is provided, check it is an upload or delete instruction
-	if (typeof value === 'string' && /^(upload\:)|(delete\:)/.test(value)) return true;
+	if (typeof value === 'string' && /^(upload\:)|(delete\:)|(remove\:)/.test(value)) return true;
 	// If the value is an object with a filename property, it is a stored value
 	// TODO: Need to actually check a dynamic path based on the adapter
 	if (typeof value === 'object' && value.filename) return true;
@@ -247,29 +270,86 @@ zipHtmlTemplate.prototype.updateItem = function (item, data, files, callback) {
 
 	// Prepare values
 	var value = this.getValueFromData(data);
-	var uploadedFile0, uploadedFile1, uploadedFile2;
-
-	// Providing the string "remove" removes the file and resets the field
-	if (value && typeof value === 'string' && value.substr(0, 7) === 'remove:') {
-		this.remove(item);
-		utils.defer(callback);
-	}
-
+	var uploadedFile, uploadedFile0, uploadedFile1, uploadedFile2;
+	var removeFile, removeFile0, removeFile1, removeFile2;
 	var languageIndex = "0"
 
+	var promiseRemove = false;
+	var promiseRemove0 = false;
+	var promiseRemove1 = false;
+	var promiseRemove2 = false;
+
+	// REMOVE SECTION
+	// Providing the string "remove" removes the file and resets the field
+	if (value && typeof value === 'string' && value.substr(0, 7) === 'remove:') {
+		languageIndex = value && value.substr(7, 1) || "0"
+
+		promiseRemove = new Promise((resolve) => {
+			this.remove(item, languageIndex, resolve);
+		});
+
+		utils.defer(callback);
+		return;
+
+	} else if (value && Array.isArray(value) && value.length > 0) {
+		var val0 = String(nesProp.get(value, "0") || "")
+		var val1 = String(nesProp.get(value, "1") || "")
+		var val2 = String(nesProp.get(value, "2") || "")
+
+		var operation0 = val0.substr(0, 7)
+		var operation1 = val1.substr(0, 7)
+		var operation2 = val2.substr(0, 7)
+
+		var fileIndex0 = val0.substr(7, 1)
+		var fileIndex1 = val1.substr(7, 1)
+		var fileIndex2 = val2.substr(7, 1)
+
+		if (operation0 === "remove:" && fileIndex0.length > 0) {
+			promiseRemove0 = new Promise((resolve) => {
+				this.remove(item, fileIndex0, resolve);
+			})
+		}
+
+		if (operation1 === "remove:" && fileIndex1.length > 0) {
+			promiseRemove1 = new Promise((resolve) => {
+				this.remove(item, fileIndex1, resolve);
+			})
+		}
+
+		if (operation2 === "remove:" && fileIndex2.length > 0) {
+			promiseRemove2 = new Promise((resolve) => {
+				this.remove(item, fileIndex2, resolve);
+			})
+		}
+
+		//utils.defer(callback);
+	}
+
+
+	// UPLOAD SECTION
 	// Find an uploaded file in the files argument, either referenced in the
 	// data argument or named with the field path / field_upload path + suffix
+	var promiseUploadAlone = false;
 	if (typeof value === 'string' && value.substr(0, 7) === 'upload:') {
 		var fileIndex = value.substr(9, value.length - 9)
 		languageIndex = value && value.substr(7, 1) || "0"
 
-		switch(languageIndex) {
-			case "0": uploadedFile0 = files[fileIndex]; break
-			case "1": uploadedFile1 = files[fileIndex]; break
-			case "2": uploadedFile2 = files[fileIndex]; break
+		// fetch from files
+		uploadedFile = files[fileIndex] || nesProp.get(files, fileIndex + "._upload")
+
+		// ensure is a file
+		if (uploadedFile && !uploadedFile.path) {
+			uploadedFile = undefined;
 		}
 
+		// prepare promise for promise stack
+		if (uploadedFile) {
+			promiseUploadAlone = new Promise((resolve) => {
+				this.upload(item, uploadedFile, languageIndex, resolve)
+			})
+		}
 	} else {
+		// the bulk upload section prepare promises for upload
 		var val0 = String(nesProp.get(value, "0") || "")
 		var val1 = String(nesProp.get(value, "1") || "")
 		var val2 = String(nesProp.get(value, "2") || "")
@@ -278,15 +358,15 @@ zipHtmlTemplate.prototype.updateItem = function (item, data, files, callback) {
 		var fileIndex1 = val1.substr(9, val1.length - 9)
 		var fileIndex2 = val2.substr(9, val2.length - 9)
 
-		if (fileIndex0) {
+		if (fileIndex0.length > 0) {
 			uploadedFile0 = files[fileIndex0] || nesProp.get(files, fileIndex0 + "._upload")
 		}
 
-		if (fileIndex1) {
+		if (fileIndex1.length > 0) {
 			uploadedFile1 = files[fileIndex1] || nesProp.get(files, fileIndex1 + "._upload")
 		}
 
-		if (fileIndex2) {
+		if (fileIndex2.length > 0) {
 			uploadedFile2 = files[fileIndex2] || nesProp.get(files, fileIndex2 + "._upload")
 		}
 
@@ -304,55 +384,58 @@ zipHtmlTemplate.prototype.updateItem = function (item, data, files, callback) {
 		uploadedFile2 = undefined;
 	}
 
-	var promise1 = new Promise((resolve) => {
-		if (uploadedFile0) {
+	var promiseUpload0 = false
+	if (uploadedFile0) {
+		promiseUpload0 = new Promise((resolve) => {
 			this.upload(item, uploadedFile0, 0, resolve)
-		} else {
-			resolve()
-		}
-	})
+		})
+	}
 
-	var promise2 = new Promise((resolve) => {
-		if (uploadedFile1) {
+	var promiseUpload1 = false
+	if (uploadedFile1) {
+		promiseUpload1 = new Promise((resolve) => {
 			this.upload(item, uploadedFile1, 1, resolve)
-		} else {
-			resolve()
-		}
-	})
+		})
+	}
 
-	var promise3 = new Promise((resolve) => {
-		if (uploadedFile2) {
+	var promiseUpload2 = false
+	if (uploadedFile2) {
+		promiseUpload2 = new Promise((resolve) => {
 			this.upload(item, uploadedFile2, 2, resolve)
-		} else {
-			resolve()
-		}
-	})
-
-	Promise.all([promise1, promise2, promise3]).then((values) => {
-		if (uploadedFile0 || uploadedFile1 || uploadedFile2) {
-			// !!values.join()
-			callback()
-		}
-	});
-
-	if (uploadedFile0 || uploadedFile1 || uploadedFile2) { return; }
-
-	// If we have a file to upload, we do that and stop here
-/* 	if (uploadedFile) {
-		return this.upload(item, uploadedFile, languageIndex, callback);
-	} */
-
-	// Empty / null values reset the field
-	if (value === null || value === '' || (typeof value === 'object' && !Object.keys(value).length) || (Array.isArray(value) && !value.length)) {
-		this.reset(item);
-		value = undefined;
+		})
 	}
 
-	// If there is a valid value at this point, set it on the field
-	if (typeof value === 'object' || Array.isArray(value)) {
-		// item.set(this.path, value); // we dont need tha value at all, we have saved the zip path html path and pdf path in other fields
+	var promises = []
+
+	promiseRemove ? promises.push(promiseRemove) : null
+	promiseRemove0 ? promises.push(promiseRemove0) : null
+	promiseRemove1 ? promises.push(promiseRemove1) : null
+	promiseRemove2 ? promises.push(promiseRemove2) : null
+
+	promiseUploadAlone ? promises.push(promiseUploadAlone) : null
+	promiseUpload0 ? promises.push(promiseUpload0) : null
+	promiseUpload1 ? promises.push(promiseUpload1) : null
+	promiseUpload2 ? promises.push(promiseUpload2) : null
+
+	if (promises.length === 0) {
+		// Empty / null values reset the field
+		if (value === null || value === '' || (typeof value === 'object' && !Object.keys(value).length) || (Array.isArray(value) && !value.length)) {
+			debug("RESET the item because no valid operation found")
+			this.reset(item);
+			value = undefined;
+		}
+		return utils.defer(callback);
+	} else {
+		return Promise.all(promises).then((values) => {
+				// !!values.join()
+				// callback()
+				utils.defer(callback);
+		})
+		.catch(() => {
+			utils.defer(callback);
+			//callback()
+		});
 	}
-	utils.defer(callback);
 };
 
 /* Export Field Type */
