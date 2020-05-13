@@ -27,6 +27,8 @@ export const Columns = {
 	textarea: require('./types/textarea/TextareaColumn'),
 	url: require('./types/url/UrlColumn'),
 	id: require('./components/columns/IdColumn'),
+	CT: require('./types/customtype/CTColumn'),
+	zipHtmlTemplate: require('./types/zipHtmlTemplate/ZipHtmlTemplateColumn'),
 	__unrecognised__: require('./components/columns/InvalidColumn'),
 };
 export const Fields = {
@@ -57,6 +59,8 @@ export const Fields = {
 	textarray: require('./types/textarray/TextArrayField'),
 	textarea: require('./types/textarea/TextareaField'),
 	url: require('./types/url/UrlField'),
+	CT: require('./types/customtype/CTField'),
+	zipHtmlTemplate: require('./types/zipHtmlTemplate/ZipHtmlTemplateField')
 };
 export const Filters = {
 	datetime: require('./types/datetime/DatetimeFilter'),
@@ -86,4 +90,6 @@ export const Filters = {
 	textarray: require('./types/textarray/TextArrayFilter'),
 	textarea: require('./types/textarea/TextareaFilter'),
 	url: require('./types/url/UrlFilter'),
+	CT: require('./types/customtype/CTFilter'),
+	zipHtmlTemplate: require('./types/zipHtmlTemplate/ZipHtmlTemplateFilter'),
 };

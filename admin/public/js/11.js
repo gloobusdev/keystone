@@ -1,7 +1,23 @@
-webpackJsonp([11],{663:function(e,t,a){"use strict"
-function l(e){return e&&e.__esModule?e:{default:e}}var o=a(1),r=l(o),p=a(39),s=l(p),u=a(26),n=l(u),i=a(27),d=l(i),f=r["default"].createClass({displayName:"DateColumn",propTypes:{col:r["default"].PropTypes.object,data:r["default"].PropTypes.object,linkTo:r["default"].PropTypes.string},getValue:function(){var e=this.props.data.fields[this.props.col.path]
-if(!e)return null
-var t="datetime"===this.props.col.type?"MMMM Do YYYY, h:mm:ss a":"MMMM Do YYYY"
-return(0,s["default"])(e).format(t)},render:function(){var e=this.getValue(),t=!(e||!this.props.linkTo)
-return r["default"].createElement(n["default"],null,r["default"].createElement(d["default"],{field:this.props.col.type,to:this.props.linkTo,empty:t},e))}})
-e.exports=f}})
+webpackJsonp([11],{
+
+/***/ 812:
+/*!**********************************************************************************!*\
+  !*** ./~/babel-loader?{"cacheDirectory":true}!./fields/types/name/NameColumn.js ***!
+  \**********************************************************************************/
+/***/ (function(module, exports, __webpack_require__) {
+
+	eval("'use strict';\n\nvar _react = __webpack_require__(/*! react */ 1);\n\nvar _react2 = _interopRequireDefault(_react);\n\nvar _ItemsTableCell = __webpack_require__(/*! ../../components/ItemsTableCell */ 29);\n\nvar _ItemsTableCell2 = _interopRequireDefault(_ItemsTableCell);\n\nvar _ItemsTableValue = __webpack_require__(/*! ../../components/ItemsTableValue */ 30);\n\nvar _ItemsTableValue2 = _interopRequireDefault(_ItemsTableValue);\n\nvar _displayName = __webpack_require__(/*! display-name */ 1054);\n\nvar _displayName2 = _interopRequireDefault(_displayName);\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nvar NameColumn = _react2.default.createClass({\n\tdisplayName: 'NameColumn',\n\tpropTypes: {\n\t\tcol: _react2.default.PropTypes.object,\n\t\tdata: _react2.default.PropTypes.object,\n\t\tlinkTo: _react2.default.PropTypes.string\n\t},\n\trenderValue: function renderValue() {\n\t\tvar value = this.props.data.fields[this.props.col.path];\n\t\tif (!value || !value.first && !value.last) return '(no name)';\n\t\treturn (0, _displayName2.default)(value.first, value.last);\n\t},\n\trender: function render() {\n\t\treturn _react2.default.createElement(\n\t\t\t_ItemsTableCell2.default,\n\t\t\tnull,\n\t\t\t_react2.default.createElement(\n\t\t\t\t_ItemsTableValue2.default,\n\t\t\t\t{ to: this.props.linkTo, padded: true, interior: true, field: this.props.col.type },\n\t\t\t\tthis.renderValue()\n\t\t\t)\n\t\t);\n\t}\n});\n\nmodule.exports = NameColumn;\n\n//////////////////\n// WEBPACK FOOTER\n// ./~/babel-loader?{\"cacheDirectory\":true}!./fields/types/name/NameColumn.js\n// module id = 812\n// module chunks = 11\n//# sourceURL=webpack:///./fields/types/name/NameColumn.js?./~/babel-loader?%7B%22cacheDirectory%22:true%7D");
+
+/***/ }),
+
+/***/ 1054:
+/*!***************************************!*\
+  !*** ./~/display-name/displayName.js ***!
+  \***************************************/
+/***/ (function(module, exports, __webpack_require__) {
+
+	eval("(function () {\n\n    /*\n    * CJK Regex generated from http://apps.timwhitlock.info/js/regex\n    */\n    var CJKRegex = /[⺀-\\u2efe\\u3000-〾\\u3040-ゞ゠-ヾ㇀-\\u31eeㇰ-ㇾ㈀-㋾㌀-㏾㐀-\\u4dbe一-\\u9ffe豈-\\ufafe︰-﹎]|[\\ud840-\\ud868\\ud86a-\\ud86c][\\udc00-\\udfff]|\\ud82c[\\udc00-\\udcfe]|\\ud869[\\udc00-\\udede\\udf00-\\udfff]|\\ud86d[\\udc00-\\udf3e\\udf40-\\udfff]|\\ud86e[\\udc00-\\udc1e]|\\ud87e[\\udc00-\\ude1e]/;\n\n    /*\n    * check whether the value is a non-empty string.\n    * @function\n    * @param {string} val\n    * @returns {boolean}\n    */\n    var isValidString = function (val) {\n        return ('string' === typeof val) && val.length;\n    };\n\n    /*\n    * Normalize display name for both Chinese and English names.\n    * @function\n    * @param {string} firstName\n    * @param {string} lastName\n    * @returns {string}\n    */\n    var displayName = function (firstName, lastName) {\n\n        var isFirstNameValid = isValidString(firstName),\n            isLastNameValid = isValidString(lastName);\n        if (isFirstNameValid) {\n            if (!isLastNameValid) {\n                return firstName;\n            }\n        } else {\n            if (isLastNameValid) {\n                return lastName;\n            } else {\n                return '';\n            }\n        }\n\n        var endOfFirstNameIsCJK = CJKRegex.test(firstName[firstName.length - 1]),\n            beginOfLastNameIsCJK = CJKRegex.test(lastName[0]);\n\n        if (endOfFirstNameIsCJK) {\n            if (beginOfLastNameIsCJK) {\n                return lastName + firstName;\n            } else {\n                return firstName + lastName;\n            }\n        } else {\n            if (beginOfLastNameIsCJK) {\n                return lastName + firstName;\n            } else {\n                return firstName + ' ' + lastName;\n            }\n        }\n    };\n\n    var root = this;\n    if (true) {\n        if ('undefined' !== typeof module && module.exports) {\n            exports = module.exports = displayName;\n        }\n    } else {\n        root.displayName = displayName;\n    }\n\n}());\n\n\n//////////////////\n// WEBPACK FOOTER\n// ./~/display-name/displayName.js\n// module id = 1054\n// module chunks = 11\n//# sourceURL=webpack:///./~/display-name/displayName.js?");
+
+/***/ })
+
+});

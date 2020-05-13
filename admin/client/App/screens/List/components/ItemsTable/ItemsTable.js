@@ -6,6 +6,8 @@ import DragDrop from './ItemsTableDragDrop';
 
 import { TABLE_CONTROL_COLUMN_WIDTH } from '../../../../../constants';
 
+import nesProp from 'nested-property';
+
 const ItemsTable = React.createClass({
 	propTypes: {
 		checkedItems: PropTypes.object.isRequired,
@@ -18,9 +20,15 @@ const ItemsTable = React.createClass({
 		rowAlert: PropTypes.object.isRequired,
 	},
 	renderCols () {
-		let cols = this.props.columns.map(col => (
-			<col key={col.path} width={col.width} />
-		));
+		let cols = this.props.columns.map((col, i) => {
+			// force find width only for template editor
+			if ( this.props.list.key == 'EmailTemplate' ) {
+				col.width = nesProp.get( this.props, 'list.expandedDefaultColumns.'+i+'.width' );
+			}
+			return (
+				<col key={col.path+i+(col.virtualPath||'')} width={col.width} />
+			)}
+		);
 
 		// add delete col when available
 		if (!this.props.list.nodelete) {
@@ -57,7 +65,7 @@ const ItemsTable = React.createClass({
 		) : null;
 
 		// map each heading column
-		const cellMap = this.props.columns.map(col => {
+		const cellMap = this.props.columns.map((col, i) => {
 			const isSelected = activeSortPath && activeSortPath.path === col.path;
 			const isInverted = isSelected && activeSortPath.invert;
 			const buttonTitle = `Sort by ${col.label}${isSelected && !isInverted ? ' (desc)' : ''}`;
@@ -66,8 +74,13 @@ const ItemsTable = React.createClass({
 				'th-sort--desc': isInverted,
 			});
 
+			// force find virtual label only for template editor
+			if ( this.props.list.key == 'EmailTemplate' && col.path === 'templateContent' && !col.virtualLabel ) {
+				col.virtualLabel = nesProp.get( this.props, 'list.expandedDefaultColumns.'+i+'.virtualLabel' );
+			}
+
 			return (
-				<th key={col.path} colSpan="1">
+				<th key={col.path+i+(col.virtualPath||'')} colSpan="1">
 					<button
 						className={colClassName}
 						onClick={() => {
@@ -77,7 +90,7 @@ const ItemsTable = React.createClass({
 							);
 						}}
 						title={buttonTitle}>
-						{col.label}
+						{col.virtualLabel && col.virtualLabel.split('_').join(' ') || col.label}
 						<span className="th-sort__icon" />
 					</button>
 				</th>

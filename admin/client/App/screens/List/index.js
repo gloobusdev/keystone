@@ -31,6 +31,7 @@ import { listsByPath } from '../../../utils/lists';
 
 import {
 	deleteItems,
+	duplicateItems,
 	setActiveColumns,
 	setActiveSearch,
 	setActiveSort,
@@ -190,6 +191,32 @@ const ListView = React.createClass({
 			},
 		});
 	},
+	massDuplicate () {
+		const { checkedItems } = this.state;
+		const list = this.props.currentList;
+		const itemCount = pluralize(checkedItems, ('* ' + list.singular.toLowerCase()), ('* ' + list.plural.toLowerCase()));
+		const itemIds = Object.keys(checkedItems);
+
+		this.setState({
+			confirmationDialog: {
+				isOpen: true,
+				label: 'Duplicate',
+				body: (
+					<p>
+						Are you sure you want to duplicate {itemCount}?
+						<br />
+						<br />
+						This cannot be undone.
+					</p>
+				),
+				onConfirmation: () => {
+					this.props.dispatch(duplicateItems(itemIds));
+					this.toggleManageMode();
+					this.removeConfirmationDialog();
+				},
+			},
+		});
+	},
 	handleManagementSelect (selection) {
 		if (selection === 'all') this.checkAllTableItems();
 		if (selection === 'none') this.uncheckAllTableItems();
@@ -216,6 +243,7 @@ const ListView = React.createClass({
 			<ListManagement
 				checkedItemCount={Object.keys(checkedItems).length}
 				handleDelete={this.massDelete}
+				handleDuplicate={this.massDuplicate}
 				handleSelect={this.handleManagementSelect}
 				handleToggle={() => this.toggleManageMode(!manageMode)}
 				isOpen={manageMode}
@@ -223,6 +251,7 @@ const ListView = React.createClass({
 				itemsPerPage={this.props.lists.page.size}
 				nodelete={currentList.nodelete}
 				noedit={currentList.noedit}
+				listId={currentList.id}
 			/>
 		);
 	},

@@ -117,3 +117,13 @@ export function deleteItems (ids) {
 		});
 	};
 }
+
+export function duplicateItems (ids) {
+	return (dispatch, getState) => {
+		const list = getState().lists.currentList;
+		list.duplicateItems(ids, (err, data) => {
+			// TODO ERROR HANDLING like we need
+			dispatch(loadItems());
+		});
+	};
+}

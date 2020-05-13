@@ -70,6 +70,10 @@ const getBase = ({ adminPath = '/keystone', entry } = {}) => {
 			// Provide consistent build hashes
 			new webpack.optimize.OccurenceOrderPlugin(),
 		],
+		watchOptions: {
+			aggregateTimeout: 300,
+			poll: true
+		},
 	};
 };
 
