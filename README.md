@@ -1,5 +1,5 @@
 ![KeystoneJS](http://keystonejs.com/images/logo.svg)
-===================================
+0===================================
 
 [![Build Status](https://travis-ci.org/keystonejs/keystone.svg?branch=master)](https://travis-ci.org/keystonejs/keystone)
 
