@@ -39,6 +39,7 @@ export const Fields = {
 	text: require('./types/text/TextField'),
 	boolean: require('./types/boolean/BooleanField'),
 	select: require('./types/select/SelectField'),
+	clientConfirmationButton: require('keystone/fields/types/clientConfirmationButton/ClientConfirmationButtonField'),
 	cloudinaryimage: require('./types/cloudinaryimage/CloudinaryImageField'),
 	cloudinaryimages: require('./types/cloudinaryimages/CloudinaryImagesField'),
 	code: require('./types/code/CodeField'),
