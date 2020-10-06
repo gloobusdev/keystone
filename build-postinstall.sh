@@ -2,17 +2,33 @@
 # Build the UI bundle if missing after install
 # install the dev dependencies if needed
 set -e
+
+echo "ÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓ"
 canary=admin/public/js/common.js
 devFile=node_modules/.bin/webpack
+
+[ ! -d admin/public ] && BOOL=0 || BOOL=1
+echo "ÓÓÓÓÓÓÓÓÓÓÓ - - - - - 2 ${BOOL}" >&2
+
 if [ ! -d admin/public ]; then
+	echo "ÓÓÓÓÓÓÓÓÓÓÓÓÓ - - - - - 3" >&2
 	echo "Run me from the git repo root" >&2
 	exit 1
 fi
+
+[ ! -e $canary ] && BOOL=0 || BOOL=1
+echo "ÓÓÓÓÓÓÓÓÓÓÓÓÓ - - - - - 4 ${BOOL}" >&2
+
 if [ ! -e $canary ]; then
 	echo "=== Building admin UI code ==="
 	shouldRemoveDev=
 	# we assume that if webpack is not installed, we don't have the dev deps
+
+	[ ! -e $devFile ] && BOOL=0 || BOOL=1
+	echo "ÓÓÓÓÓÓÓÓÓÓÓÓÓ - -  Before if for decide to install npm - - - 5 ${BOOL}" >&2
+
 	if [ ! -e $devFile ]; then
+		echo "ÓÓÓÓÓÓÓÓÓÓÓÓÓ -  Start npm install - - - - 5 ${BOOL}" >&2
 		shouldRemoveDev=true
 		# carefully curated collection of build dependencies, update with package.json
 		npm install \
