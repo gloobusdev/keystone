@@ -1,4 +1,4 @@
-var FieldType = require('keystone/fields/types/Type');
+var FieldType = require('../types/Type');
 var utils = require('keystone-utils');
 var util = require('util');
 

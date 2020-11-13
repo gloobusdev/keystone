@@ -1,6 +1,6 @@
 module.exports = {
-	Field: require('keystone/fields/types/clientConfirmationButton/ClientConfirmationButtonField'),
-	Filter: require('keystone/fields/types/clientConfirmationButton/ClientConfirmationButtonFilter'),
+	Field: require('../ClientConfirmationButtonField'),
+	Filter: require('../ClientConfirmationButtonFilter'),
 	section: 'Miscellaneous',
 	spec: {
 		label: 'ClientConfirmationButton',
